@@ -13,11 +13,11 @@ Prerequisites are:
   * youtube-dl
   * ffmpeg
 
-### Install on Linux Mint (Tara) or Ubuntu 18.04 (bionic)
+### Install on Debian, Linux Mint (19.X) or Ubuntu 18.04 (bionic) 
 ```
-sudo apt-get install python3-gi ffmpeg youtube-dl
+sudo apt install python3-gi ffmpeg youtube-dl
 ```
-### Install on Arch or Antergos
+### Install on Arch or Manjaro
 ```
 sudo pacman -Syu python-gobject ffmpeg youtube-dl
 ```
@@ -29,7 +29,7 @@ You may set the target directories for video and audio individually.
 
 The URLs in the list can be saved and restored
 
-###How to install
+### How to install
 * Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.0.0.tar)
 * Unpack it and run the command "sudo ./install.sh" in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
