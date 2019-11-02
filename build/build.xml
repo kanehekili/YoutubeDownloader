@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name="Build YT" default="deploy">
+	<target name="build_dir">
+    	<property file="build.properties"/>
+		<property name="stage" value="stage"/>
+		<property name="rootDir" value="${stage}/YtDownloader"/>
+		<delete dir="${stage}"/>
+		<mkdir dir="${stage}"/>
+		<mkdir dir="${rootDir}"/>
+
+		<property name="source" value="../src"/>
+		
+		<copy todir="${rootDir}">
+			<fileset file="*.desktop">
+			</fileset>
+			<fileset file="*install.sh">
+			</fileset>
+		</copy>
+			
+		<chmod file="${rootDir}/install.sh" perm="ug+rwx"/>
+		<chmod file="${rootDir}/uninstall.sh" perm="ug+rwx"/>
+		
+		<copy todir="${rootDir}">
+			<fileset dir="${source}" includes="*.png"></fileset>
+			 <fileset dir="${source}" includes="*.py"></fileset>
+		</copy>
+
+	</target>
+
+	<target name="deploy" depends="build_dir">
+		<delete>
+			<fileset dir="." includes="**/*.tar*"/>
+		</delete>	
+		<exec executable="tar" output="/dev/null" os="Linux">
+			<arg value="-cp"/>
+			<arg value="--file=YtDownloader${version}.tar"/>
+			<arg value="--directory=${stage}"/>
+			<arg value="YtDownloader"/>
+		</exec>
+		<delete dir="${stage}"/>
+	</target>
+</project>	

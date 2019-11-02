@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import json 
 import re
 import time
+from fileinput import filename
 
 #import threading
 MODE_VIDEO=0;
@@ -95,11 +96,19 @@ class ConfigAccessor():
     __SECTION="DATA"
     
 
-    def __init__(self,filePath):
-        self._path=filePath
+    def __init__(self,fileName):
+        self._findConfigPath(fileName)
         self.parser = ConfigParser()
         self.parser.add_section(self.__SECTION)
 
+    def _findConfigPath(self,fileName):
+        home = expanduser("~")
+        cfg = os.path.join(home,".config")
+        if os.path.exists(cfg):
+            self._path= os.path.join(cfg,fileName)
+        else:
+            self._path = os.path.join(home,fileName)
+        
 
     def read(self):
         self.parser.read(self._path)
@@ -128,7 +137,7 @@ class ConfigAccessor():
 class Model():
     def __init__(self):
         self.text = TEXT_MAP
-        self.config = ConfigAccessor("dl.ini")
+        self.config = ConfigAccessor("YtDownloader.ini")
         self._assureConfig()
     
     def _assureConfig(self):
@@ -141,8 +150,14 @@ class Model():
             self.config.add("SCREENY","450")
             pathM = os.path.join(home,_t("FOLDER_MUSIC"))
             pathV = os.path.join(home,_t("FOLDER_VIDEO"))
-            self.config.add("DEST_MUSIC",pathM)
-            self.config.add("DEST_VIDEO",pathV)
+            if os.path.exists(pathM):
+                self.config.add("DEST_MUSIC",pathM)
+            else:
+                self._setEmergencyFolder(home,"DEST_MUSIC")
+            if os.path.exists(pathV):
+                self.config.add("DEST_VIDEO",pathV)
+            else:
+                self._setEmergencyFolder(home,"DEST_VIDEO")
             self.config.add("DOWNLOAD_TYPE",str(MODE_VIDEO))#video or audio
             self.config.add("URLList",json.dumps([]))
     
@@ -183,6 +198,13 @@ class Model():
     def setURLList(self,anArray):
         txt= json.dumps(anArray)
         self.config.add("URLList",txt)
+    
+    def _setEmergencyFolder(self,home,key):
+        pathD = os.path.join(home,"Downloads")
+        if not os.path.exists(pathD):
+            os.mkdir(pathD)
+        self.config.add(key,pathD)
+                    
         
 def convertURL(rawData):
     data = rawData.split('&')
