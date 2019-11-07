@@ -1,37 +1,55 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Verison 1.0.0
+Version 1.1.0
 
 This simple GUI for the youtube-dl runs on linux. 
 
 ![Screenshot](./Yt.png)
 
-Prerequisites are:
+### Features
+Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the list. 
+
+In addition an URL may be entered manually using the "plus" icon
+
+The URLs in the list can be saved and restored
+
+### Settings
+Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
+
+![Screenshot](./YtSettings.png)
+
+There are 3 options for video quality:
+* A MP4 container will lead mostly to a good result,but usually not the best
+* MKV container can take literally any codec. Since youtube often uses webm container with vp9 and opus codecs this would be the choice for best quality
+* The "auto" modus will not pass any merge requests to youtube-dl, so depending on the available data either MKV or webm container will be the output. 
+
+### Prerequisites
   * python3
   * python3-gi (debian) or python-gobject (Arch)
   * youtube-dl
   * ffmpeg
 
-### Install on Debian, Linux Mint (19.X) or Ubuntu 18.04 (bionic) 
+### Prepare install on Debian, Linux Mint (19.X) or Ubuntu 18.04 (bionic) 
 ```
-sudo apt install python3-gi ffmpeg youtube-dl
+sudo apt install python3-gi ffmpeg
 ```
-### Install on Arch or Manjaro
+Unfortunately Ubuntu and derivates offer a very old version of youtube-dl which does not work. Use included bashfile for installing the latest youtube-dl direct from their homepage:
+
+```
+sudo ./installYoutube-dl.sh
+```
+Currently Debian Stable has no problems.
+### Prepare install on Arch or Manjaro
 ```
 sudo pacman -Syu python-gobject ffmpeg youtube-dl
 ```
 
-###Features
-Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the gui.
-
-You may set the target directories for video and audio individually. 
-
-The URLs in the list can be saved and restored
-
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.0.0.tar)
-* Unpack it and run the command "sudo ./install.sh" in the unpacked folder.
+* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.1.0.tar)
+* Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
+* In case your distros youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
 
+   
 

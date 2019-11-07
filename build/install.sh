@@ -6,8 +6,9 @@ if [ "$EUID" -ne 0 ] ; then
 fi
 #copy desktop to /usr/share applications
 sudo cp Yt.desktop /usr/share/applications;
-sudo mkdir -p /usr/local/sbin/YtDownloader;
-sudo cp * /usr/local/sbin/YtDownloader/;
+sudo mkdir -p /usr/local/bin/YtDownloader;
+sudo cp * /usr/local/bin/YtDownloader/;
+#rm $HOME/.config/YtDownloader.ini
 
 echo "####################################################"
 echo "#   Ensure you have installed:                     #"                     

@@ -13,16 +13,21 @@ from urllib.parse import urlparse
 import json 
 import re
 import time
-from fileinput import filename
 
 #import threading
 MODE_VIDEO=0;
 MODE_AUDIO=1;
 lang = locale.getdefaultlocale()
 
+YOUTUBE_DL="/usr/bin/youtube-dl"
+if not os.path.exists(YOUTUBE_DL):
+    YOUTUBE_DL="/usr/local/bin/youtube-dl"    
+if not os.path.exists(YOUTUBE_DL):
+    YOUTUBE_DL=None
+
 TEXT_MAP = {}
 if "en" in lang[0]:
-    TEXT_MAP["TITLE"]="You Tube Downloader"
+    TEXT_MAP["TITLE"]="Video Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="Drop URLs onto list below"
     TEXT_MAP["BUTTON_OK"]="Download"
     TEXT_MAP["BUTTON_CANX"]="   Done   "
@@ -53,8 +58,16 @@ if "en" in lang[0]:
     TEXT_MAP["URL_DLG"]="Add video URL"
     TEXT_MAP["ENTER_URL"]="Enter video URL"
     TEXT_MAP["SETTINGS_LABEL"]="Settings"
+    TEXT_MAP["SET_AUDIO_LBL"]="Store audio at:"
+    TEXT_MAP["SET_VIDEO_LBL"]="Store videos at:"
     TEXT_MAP["FOLDER_VIDEO_SAVE"]="Video Folder"
     TEXT_MAP["FOLDER_AUDIO_SAVE"]="Audio Folder"
+    TEXT_MAP["DL_SETTINGS_TITLE"]="Quality settings"
+    TEXT_MAP["SEL_MP4"]="Good quality with mp4"
+    TEXT_MAP["SEL_MKV"]="Highest quality with mkv"
+    TEXT_MAP["SEL_ANY"]="Highest quality auto container"
+    TEXT_MAP["NO_DL"]="Could not find youtube-dl. It should be either in \n /usr/bin or /usr/local/bin"
+    
 elif "de" in lang[0]:
     TEXT_MAP["TITLE"]="You Tube Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="URLs auf die Liste ziehen"
@@ -84,11 +97,19 @@ elif "de" in lang[0]:
     TEXT_MAP["LIST_LOADED"]="Liste geladen"
     TEXT_MAP["LIST_SAVED"]="Liste gespeichert"
     TEXT_MAP["SETTINGS_DLG"]="Einstellungen"
+    TEXT_MAP["SET_AUDIO_LBL"]="Ordner für Musik:"
+    TEXT_MAP["SET_VIDEO_LBL"]="Ordner für Videos"    
     TEXT_MAP["URL_DLG"]="Video Adresse"
     TEXT_MAP["ENTER_URL"]="Manuelle Eingabe der Video URL"
     TEXT_MAP["SETTINGS_LABEL"]="Einstellungen"
     TEXT_MAP["FOLDER_VIDEO_SAVE"]="Video Ordner"
     TEXT_MAP["FOLDER_AUDIO_SAVE"]="Audio Ordner"
+    TEXT_MAP["DL_SETTINGS_TITLE"]="Qualitätseinstellungen"
+    TEXT_MAP["SEL_MP4"]="Gute Qualität im mp4 Format"
+    TEXT_MAP["SEL_MKV"]="Sehr gute Qualität im mkv Format"
+    TEXT_MAP["SEL_ANY"]="Sehr gute Qualität im beliebigen Format"
+    TEXT_MAP["NO_DL"]="youtube-dl nicht gefunden. Sollte entweder in\n /usr/bin oder /usr/local/bin sein"
+    
 def _t(s):
     return TEXT_MAP[s]
 
@@ -135,6 +156,7 @@ class ConfigAccessor():
         return True
 
 class Model():
+    FORMATS=["mp4","mkv","any"]
     def __init__(self):
         self.text = TEXT_MAP
         self.config = ConfigAccessor("YtDownloader.ini")
@@ -160,6 +182,7 @@ class Model():
                 self._setEmergencyFolder(home,"DEST_VIDEO")
             self.config.add("DOWNLOAD_TYPE",str(MODE_VIDEO))#video or audio
             self.config.add("URLList",json.dumps([]))
+            self.config.add("FORMAT",self.FORMATS[0])
     
     def getScreenX(self):
         return self.config.getInt("SCREENX")
@@ -199,6 +222,15 @@ class Model():
         txt= json.dumps(anArray)
         self.config.add("URLList",txt)
     
+    def setFormat(self,aString):
+        self.config.add("FORMAT",aString)
+
+    def getFormat(self):
+        return self.config.get("FORMAT")        
+    
+    def hasValidLibrary(self):
+        return YOUTUBE_DL is not None
+    
     def _setEmergencyFolder(self,home,key):
         pathD = os.path.join(home,"Downloads")
         if not os.path.exists(pathD):
@@ -218,6 +250,7 @@ def convertURL(rawData):
         return aParseResult
     return None
 
+#throws exception..
 def executeAsync(cmd,commander,targetDir):
     popen = subprocess.Popen(cmd, cwd=targetDir,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)
     commander.setProcess(popen)
@@ -226,42 +259,88 @@ def executeAsync(cmd,commander,targetDir):
     popen.stdout.close()
     return_code = popen.wait()
     if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd)
+        form=errorToPangoMarkup(stdout_line)
+        raise Exception(form)
+
+def errorToPangoMarkup(error):
+    form=''
+    text= error.replace('"','*')
+    text = text.split('. ') 
+    return text[0]
+
     
+#Helper class for returning either result objects or errors
+class ProcResult():
+    def __init__(self,res=None,err=None):
+        self.result=res
+        self.error = err
+        
+    def hasError(self):
+        return self.error is not None
+
 
 '''
 The downloader.
 expects an object that can receive the progress data:
 onProgress(percent(float), size with units (str), speed with units (str) 
+
+best video & audio for mp4
+youtube-dl -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio --merge-output-format mp4 https://www.youtube.com/watch?v=Xj3gU3jACe8
+
+bestaudio:
+youtube-dl -f bestaudio --extract-audio --audio-quality 0 --audio-format mp3
+
+very best only (trick=mkv)
+youtube-dl -f bestvideo+bestaudio --merge-output-format mkv https://www.youtube.com/watch?v=Xj3gU3jACe8
+or:
+youtube-dl -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
+>>leads to a webm file. needs complete transcoding for mp4....(VP9+Opus)
 '''
 class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
     DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+.iB) in ([0-9:]+)' )
+    MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","--merge-output-format","mp4"]
+    MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","--merge-output-format","mkv"]
+    ANY = [YOUTUBE_DL,"-f","bestvideo+bestaudio"]
+    AUDIO = [YOUTUBE_DL,"-f","bestaudio","--extract-audio","--audio-quality","0","--audio-format","mp3"]
     
     def __init__(self,receiver):
         self.client = receiver
         self.proc = None
+        self.res = ProcResult(res="Done")
         
 
-    def download(self,url,videomode,targetDir):
-        #TODO --recode-video mp4
-        cmd=["/usr/bin/youtube-dl","-f","best"]
+    def download(self,url,videomode,quality,targetDir):
+        #TODO --transcode-video to mp4?
+        if YOUTUBE_DL is None:
+            return ProcResult(None,_t("NO_DL"))
+
+        cmd=[]
         if videomode==MODE_AUDIO:
-            cmd.extend(["--extract-audio","--audio-format","mp3","--audio-quality","0"])
+            cmd = self.AUDIO
+        else:
+            if quality == Model.FORMATS[0]:
+                cmd=self.MP4
+            elif quality == Model.FORMATS[1]:
+                cmd=self.MKV
+            else:
+                cmd=self.ANY
         cmd.append(url)
-        error = None
         start = time.monotonic()-1000
-        for line in executeAsync(cmd,self,targetDir):
-            now= time.monotonic()
-            elapsed = int(now-start)
-            showProgress=elapsed>=1
-            err = self.parseAndDispatch(line,showProgress)
-            if showProgress:
-                start=now
-            if err is not None:
-                error=err
-        return error   
+        try:
+            for line in executeAsync(cmd,self,targetDir):
+                now= time.monotonic()
+                elapsed = int(now-start)
+                showProgress=elapsed>=1
+                err = self.parseAndDispatch(line,showProgress)
+                if showProgress:
+                    start=now
+                if err is not None:
+                    self.res.error = err
+        except Exception as error:
+            self.res.error=repr(error.args[0])
+        return self.res   
             
     def parseAndDispatch(self,line,showProgress):
         
@@ -286,7 +365,7 @@ class Downloader():
                 print ("<"+line.rstrip())  
                 if "ERROR" in line:
                     print("error:%s"%(line));#TODO
-                    return line
+                    return errorToPangoMarkup(line)
         return None 
     
                 
@@ -303,69 +382,27 @@ class Downloader():
 def getInfo(url):
     #read url and display info -DOES NOT RETURN if & is contained
     #Not usable while downloading
-    cmd=["/usr/bin/youtube-dl","-j",url]
-    result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
-    if len(result[0])>0:
-        text= result[0].decode("utf-8")
-        result = json.loads(text) #is a map
-        #json.dumps(map) is the reverse....
-        #for item in result.items():
-        #    print(item)
-        return result 
-'''
-too slow - use get info instead. Slow too.
-    cmd=["/usr/bin/youtube-dl","-e",url]
-'''
-def jsontest1():
-    test=["A","B","C"]
-    jarray = json.dumps(test)
-    print(jarray)
-    test2 = json.loads(jarray)    
-    print(test2)
-
-def test():
-    regexp = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
-    #uk = re.compile("([0-9.]+)% [A-z]+ ([~]*[0-9.]+.iB) at *([A-z]+)")
-    #text="[download]   0.0% of 8.72MiB at 615.99KiB/s ETA 00:14"
-    text="[download] 100.0% of 8.72MiB at  6.85MiB/s ETA 00:00"
-    test2='[download] 100.0% of ~345.91MiB at  6.49MiB/s ETA 00:00'
-    test3='[download]  13.9% of ~346.95MiB at Unknown speed ETA 00:04'
-    m = regexp.search(text)
-    found = m.groups()
-    print(m.group(0))
-    for item in found:
-        print("1:%s"%(item))
-    m = regexp.search(test2)
-    found = m.groups()
-    print(m.group(0))
-    for item in found:
-        print("2:%s"%(item))
-    m = regexp.search(test3)
-    found = m.groups()
-    print(m.group(0))
-    for item in found:
-        print("3:%s"%(item))
-                    
-def test2():
-    text='[download] Philips PM5644 test pattern 1920 x 1080px HD-yaqe1qesQ8c.mp4 has already been downloaded'
-    ISPRESENT = re.compile('.+has already been downloaded')
-    if ISPRESENT.match(text):
-        print("ok")
-
-def test3():
-    text='[download] 100% of 345.91MiB in 01:00'
-    DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+.iB) in ([0-9:]+)' )
-    ok=DONE.match(text)
-    print(ok)
-    m = DONE.search(text)
-    found = m.groups()
-    print(m.group(0))
-    for item in found:
-        print("1:%s"%(item))
-
+    if YOUTUBE_DL is None:
+        return ProcResult(None,_t("NO_DL"))
+    cmd=[YOUTUBE_DL,"-j",url]
+    try:
+        result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
+        if len(result[1])>0:
+            #This is mostly an api problem
+            form=errorToPangoMarkup(result[1].decode("utf-8"))
+            return ProcResult(None,form)
+        if len(result[0])>0:
+            text= result[0].decode("utf-8")
+            result = json.loads(text) #is a map
+            #json.dumps(map) is the reverse....
+            #for item in result.items():
+            #    print(item)
+            return ProcResult(result,None)
+    except Exception as error:
+        form=errorToPangoMarkup(repr(error.args[0]))
+        print(form)
+        return ProcResult(None,form)
+        
           
 if __name__ == '__main__':
-    #getInfo("https://www.youtube.com/watch?v=nYh-n7EOtMA")
-    #download("https://www.youtube.com/watch?v=yaqe1qesQ8c", MODE_VIDEO, "/home/matze/Videos/test")
-    test3()
     pass

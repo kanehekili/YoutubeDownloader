@@ -5,7 +5,5 @@ if [ "$EUID" -ne 0 ] ; then
   exit 1
 fi
 
-sudo rm /usr/share/applications/Yt.desktop
-sudo rm -rf /usr/local/bin/YtDownloader
-
-echo "App removed."
+wget https://yt-dl.org/downloads/latest/youtube-dl -O /usr/local/bin/youtube-dl
+chmod a+rx /usr/local/bin/youtube-dl

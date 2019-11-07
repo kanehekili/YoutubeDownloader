@@ -13,17 +13,24 @@
 		<copy todir="${rootDir}">
 			<fileset file="*.desktop">
 			</fileset>
-			<fileset file="*install.sh">
+			<fileset file="*install*.sh">
 			</fileset>
 		</copy>
 			
 		<chmod file="${rootDir}/install.sh" perm="ug+rwx"/>
 		<chmod file="${rootDir}/uninstall.sh" perm="ug+rwx"/>
+		<chmod file="${rootDir}/installYoutube-dl.sh" perm="ug+rwx"/>
 		
 		<copy todir="${rootDir}">
-			<fileset dir="${source}" includes="*.png"></fileset>
-			 <fileset dir="${source}" includes="*.py"></fileset>
+			<fileset file="${source}/YtGui.py"/>
+				<filterset>
+			    	<filter token="xxxx" value="${version}"/>
+			  	</filterset>			
 		</copy>
+		<copy todir="${rootDir}">
+			<fileset dir="${source}" includes="*.png"></fileset>
+			<fileset file="${source}/YtModel.py"/>
+		</copy>		
 
 	</target>
 

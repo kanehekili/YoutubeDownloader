@@ -11,13 +11,10 @@ from gi.repository import Gtk, Gdk,GLib
 import os
 import threading
 
-
-
-
 TARGET_ENTRY_TEXT =0
 DRAG_ACTION = Gdk.DragAction.COPY
-YT_PATH ="/usr/bin/youtube-dl"
 TEXT_MAP = None
+VERSION="@xxxx@"
 
 def _t(s):
     if not s in TEXT_MAP:
@@ -63,8 +60,7 @@ class YtWindow(Gtk.Window):
         self.set_border_width(5)
         self.connect("delete-event", self.on_winClose, None)
         self.connect("show",self.on_Startup, None)
- 
-        
+
         self.show_all()
  
     def _createToolbar(self):
@@ -185,7 +181,9 @@ class YtWindow(Gtk.Window):
         self.config.store()
 
     def on_Startup(self,widget, data):
-        self.spinner.hide()        
+        self.spinner.hide()   
+        if not self.model.hasValidLibrary():     
+            self._showError(_t("NO_DL"))
 
     def on_close_clicked(self, widget):
         self.should_abort=True
@@ -273,7 +271,7 @@ class YtWindow(Gtk.Window):
         
         dialog = Gtk.MessageDialog(parent=self, flags=0,  message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,  text=_t("DIALOG_TITLE_ERROR"),image=image)
-        dialog.format_secondary_text(text)
+        dialog.format_secondary_markup(text)
         dialog.run()
         dialog.destroy()   
         return False   
@@ -323,8 +321,10 @@ class YtWindow(Gtk.Window):
         if response == Gtk.ResponseType.OK:
             v= dialog.getVideoPath()
             a= dialog.getAudioPath()
+            f=dialog.getFormat()
             self.model.setVideoPath(v)
             self.model.setMusicPath(a)
+            self.model.setFormat(f)
         dialog.destroy() 
 
 class SettingsDialog(Gtk.Dialog):
@@ -350,16 +350,24 @@ class SettingsDialog(Gtk.Dialog):
         gtkdummyBox = Gtk.VBox()
         videoBox = Gtk.HBox()
         audioBox = Gtk.HBox()
+        vlbl = Gtk.Label(label=_t("SET_VIDEO_LBL"))
+        vlbl.set_halign(Gtk.Align.START);
+        vlbl.set_margin_start(5)#Gtk has NO documentation about this (margin_left==deprecated)"
+        gtkdummyBox.pack_start(vlbl,False,False,0)
         gtkdummyBox.pack_start(videoBox,True,True,5)
+        albl = Gtk.Label(label=_t("SET_AUDIO_LBL"))
+        albl.set_halign(Gtk.Align.START)
+        albl.set_margin_start(5) 
+        gtkdummyBox.pack_start(albl,False,False,0)
         gtkdummyBox.pack_start(audioBox,True,True,5)
-        
+
         self.ventry = Gtk.Entry()
         self.ventry.set_text(self.parent.model.getVideoPath())
         fc = Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_DIRECTORY))
         fc.connect("clicked",self._onVideoChanged)
         videoBox.pack_start(self.ventry,True,True,5)
         videoBox.pack_end(fc,False,False,5)
-
+        
         self.aentry = Gtk.Entry()
         self.aentry.set_text(self.parent.model.getMusicPath())
         fc = Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_DIRECTORY))
@@ -367,11 +375,48 @@ class SettingsDialog(Gtk.Dialog):
         audioBox.pack_start(self.aentry,True,True,5)
         audioBox.pack_end(fc,False,False,5)
 
+        loadBox = Gtk.VBox()
+        loadSettings = Gtk.Frame()
+        loadSettings.set_label(_t("DL_SETTINGS_TITLE"))
+        loadSettings.add(loadBox)
+        
+        rbmp4= Gtk.RadioButton.new_with_label_from_widget(None,_t("SEL_MP4")) 
+        rbmp4.connect("toggled", self._on_button_toggled, "0")
+        rbmkv= Gtk.RadioButton.new_with_label_from_widget(rbmp4,_t("SEL_MKV"))
+        rbmkv.connect("toggled", self._on_button_toggled, "1")
+        rbany= Gtk.RadioButton.new_with_label_from_widget(rbmp4,_t("SEL_ANY"))
+        rbany.connect("toggled", self._on_button_toggled, "2")
+        
+        self.format = self.parent.model.getFormat()
+        indx = self.parent.model.FORMATS.index(self.format)
+        if indx ==0:
+            rbmp4.set_active(True)
+        elif indx==1:
+            rbmkv.set_active(True)
+        else:
+            rbany.set_active(True)
+        loadBox.pack_start(rbmp4,False,False,3)
+        loadBox.pack_start(rbmkv,False,False,3)
+        loadBox.pack_start(rbany,False,False,3)
+        
+        #Version & credentials
+        versBox= Gtk.HBox()
+        versBox.set_border_width(5)
+        lbl=Gtk.Label()
+        lbl.set_markup('<span size="small">V:'+VERSION+'</span>')
+        
+        versBox.pack_start(lbl,False,False,2)
+        
+        lbl=Gtk.Label()
+        lbl.set_markup('<span size="small">Copyright (c) 2019 Kanehekili</span>')
+        versBox.pack_start(lbl,False,False,2)
+        
         box = self.get_content_area()
         box.set_border_width(15)
         box.add(headBox)
         box.add(gtkdummyBox)
-        #box.add(audioBox)
+        box.add(loadSettings)
+        box.add(versBox)
         self.show_all()
         
     def  _onVideoChanged(self,widget):
@@ -396,12 +441,21 @@ class SettingsDialog(Gtk.Dialog):
             self.aentry.set_text(thePath)
         dialog.destroy() 
 
+    def _on_button_toggled(self,widget,id):
+        if widget.get_active():
+            indx = int(id)
+            str = self.parent.model.FORMATS[indx]
+            self.format=str
+            
+
     def getVideoPath(self):
         return self.ventry.get_text()
     
     def getAudioPath(self):
         return self.aentry.get_text()
 
+    def getFormat(self):
+        return self.format
 class URLDialog(Gtk.Dialog):
     def __init__(self, parent):
         Gtk.Dialog.__init__(self, _t("URL_DLG"), parent, 0,
@@ -452,6 +506,7 @@ class YTDownloader():
         fs=self.parent.fileStore
         aiter = fs.get_iter_first ()
         mode = self.parent.model.getDownloadType()
+        quality = self.parent.model.getFormat()
         if mode==YtModel.MODE_AUDIO:
             targetDir = self.parent.model.getMusicPath()
         else:
@@ -461,9 +516,11 @@ class YTDownloader():
         while ( aiter != None ):
             self.current=aiter
             url = fs.get_value (aiter, 0)
-            downloader.download(url, mode, targetDir)
+            res = downloader.download(url, mode,quality, targetDir)
+            if res.hasError():
+                return res.error
             aiter = fs.iter_next(aiter)
-        return "" #No error
+        return None
     
     def onProgress(self,progress,size,speed):
         if self.current is not None:
@@ -479,6 +536,8 @@ class YTDownloader():
         
     def processResult(self,res):
         self.parent._longOperationDone()
+        if res is not None:
+            self.parent._showError(res)
         return GLib.SOURCE_REMOVE
 
 class YTInfo():
@@ -492,10 +551,10 @@ class YTInfo():
     
     def processResult(self,res):
         self.parent._longOperationDone()
-        if res is not None:
-            title = res["title"]
-            if title is None:
-                self._handleError(res)
+        if res.hasError():
+            self._handleError(res.error)
+        else:
+            title = res.result["title"]
             self.parent.injectTitle(title)
         return GLib.SOURCE_REMOVE
     

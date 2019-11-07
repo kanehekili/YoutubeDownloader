@@ -3,9 +3,9 @@
 Encoding=UTF-8
 Version=1.0
 Type=Application
-Exec=python3 /usr/local/sbin/YtDownloader/YtGui.py 
+Exec=python3 /usr/local/bin/YtDownloader/YtGui.py 
 Name=Youtube Downloader
 Comment=Downloads video and audio
-Icon=/usr/local/sbin/YtDownloader/youtube512.png
+Icon=/usr/local/bin/YtDownloader/youtube512.png
 NoDisplay=false
 Categories=GTK;AudioVideo
