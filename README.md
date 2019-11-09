@@ -48,7 +48,7 @@ sudo pacman -Syu python-gobject ffmpeg youtube-dl
 ```
 
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.1.0.tar)
+* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.2.0.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
 * In case your distros youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
