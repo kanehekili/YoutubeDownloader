@@ -31,6 +31,7 @@ if "en" in lang[0]:
     TEXT_MAP["TITLE"]="Video Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="Drop URLs onto list below"
     TEXT_MAP["BUTTON_OK"]="Download"
+    TEXT_MAP["BTN_INTERRUPT"]=" Interrupt "
     TEXT_MAP["BUTTON_CANX"]="   Exit   "
     TEXT_MAP["BUTTON_DEL"]="Delete"
     TEXT_MAP["FOLDER_MUSIC"]="Music"
@@ -69,11 +70,14 @@ if "en" in lang[0]:
     TEXT_MAP["SEL_MKV"]="Highest quality with mkv"
     TEXT_MAP["SEL_ANY"]="Highest quality auto container"
     TEXT_MAP["NO_DL"]="Could not find youtube-dl. It should be either in \n /usr/bin or /usr/local/bin"
+    TEXT_MAP["STATUS_INTERRUPT"]="Process interrupted"
+    TEXT_MAP["ALREADY_THERE"]="File already downloaded"
     
 elif "de" in lang[0]:
     TEXT_MAP["TITLE"]="You Tube Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="URLs auf die Liste ziehen"
     TEXT_MAP["BUTTON_OK"]="Download"
+    TEXT_MAP["BTN_INTERRUPT"]="Stoppen "
     TEXT_MAP["BUTTON_CANX"]="   Schließen   "
     TEXT_MAP["BUTTON_DEL"]=" Löschen "
     TEXT_MAP["FOLDER_MUSIC"]="Musik"
@@ -112,6 +116,9 @@ elif "de" in lang[0]:
     TEXT_MAP["SEL_MKV"]="Sehr gute Qualität im mkv Format"
     TEXT_MAP["SEL_ANY"]="Sehr gute Qualität im beliebigen Format"
     TEXT_MAP["NO_DL"]="youtube-dl nicht gefunden. Sollte entweder in\n /usr/bin oder /usr/local/bin sein"
+    TEXT_MAP["STATUS_INTERRUPT"]="Download abgebrochen"
+    TEXT_MAP["ALREADY_THERE"]="Datei schon geladen"
+    
     
 def _t(s):
     if not s in TEXT_MAP:
@@ -257,20 +264,31 @@ def convertURL(rawData):
     return None
 
 #throws exception..
-import signal
+import sys
 def executeAsync(cmd,commander,targetDir):
+    print(cmd)
+    stdout_line=None
     popen = subprocess.Popen(cmd, cwd=targetDir,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)
     commander.setProcess(popen)
     for stdout_line in iter(popen.stdout.readline, ""):
         yield stdout_line
+    
+    popen.stdout.flush()    
     popen.stdout.close()
-    return_code = popen.wait()
+    sys.stdout.flush()
+    return_code = popen.poll()
+    while return_code is None:
+        return_code = popen.poll()    
+    
     if return_code:
+        if return_code == -9:
+            raise StopAsyncIteration(_t("BTN_INTERRUPT"))
         form=cropError(stdout_line)
         raise Exception(form)
 
 def cropError(errorText):
-    form=''
+    if errorText is None:
+        return 
     #text= error.replace('"','*')
     text = errorText.split('. ') 
     return text[0]
@@ -313,8 +331,7 @@ youtube-dl -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
 class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
-    DWN_SIZE =re.compile('([0-9.]+)([A-z]+)')
-    DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+.iB) in ([0-9:]+)' )
+    DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
     MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","--merge-output-format","mp4"]
     MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","--merge-output-format","mkv"]
     ANY = [YOUTUBE_DL,"-f","bestvideo+bestaudio"]
@@ -333,7 +350,6 @@ class Downloader():
         if YOUTUBE_DL is None:
             return ProcResult(None,_t("NO_DL"))
 
-        cmd=[]
         if videomode==MODE_AUDIO:
             cmd = self.AUDIO
         else:
@@ -343,10 +359,10 @@ class Downloader():
                 cmd=self.MKV
             else:
                 cmd=self.ANY
-        cmd.append(url)
+        command = cmd+[url]
         start = time.monotonic()-1000
         try:
-            for line in executeAsync(cmd,self,targetDir):
+            for line in executeAsync(command,self,targetDir):
                 now= time.monotonic()
                 elapsed = int(now-start)
                 showProgress=elapsed>=1
@@ -355,8 +371,12 @@ class Downloader():
                     start=now
                 if err is not None:
                     self.res.error = err
+        except StopAsyncIteration as error:
+            self.client.onProgress(None,_t("STATUS_INTERRUPT"))
+            
         except Exception as error:
             self.res.error=errorToText(error)
+        self.proc=None
         return self.res   
             
     def parseAndDispatch(self,line,showProgress):
@@ -364,28 +384,28 @@ class Downloader():
         try:        
             m = self.REGEXP.search(line) 
             progress = float(m.group(1))
-            size = m.group(2)
+            #size = m.group(2)
             speed = m.group(3)
             if showProgress:
                 #print("%.1f size:%s speed:%s "%(progress,size,speed))
-                self.client.onProgress(progress,size,speed)
+                self.client.onProgress(progress,speed)
 
         except Exception as error:
             if len(line)>5:
                 if self.ISPRESENT.match(line):
-                    self.client.onProgressDone(None)
+                    self.client.onProgressDone(_t("ALREADY_THERE"))
                 else:
                     m = self.DONE.search(line)
                     if m is not None:
-                        t1=m.group(1)
-                        t2=m.group(2)
-                        tf = self.DWN_SIZE.match(t2)
-                        self.downloadSize+=float(tf.group(1))
-                        rate = tf.group(2)                       
-                        dm=m.group(3).split(':')
+                        proz=m.group(1)
+                        size1=m.group(2)
+                        unit= m.group(3)
+                        dur= m.group(4)
+                        self.downloadSize+=float(size1)
+                        dm=dur.split(':')
                         td=timedelta(minutes=int(int(dm[0])),seconds=int(dm[1]))
                         self.downloadtime+=td
-                        self.client.onProgressDone(t1+'% of '+format(self.downloadSize,'.2f')+rate+" in "+str(self.downloadtime))
+                        self.client.onProgressDone(proz+'% of '+format(self.downloadSize,'.2f')+unit+" in "+str(self.downloadtime))
                     
                 print ("<"+line.rstrip())  
                 if "ERROR" in line:
@@ -398,7 +418,7 @@ class Downloader():
         if self.proc is None:
             print("Can't kill proc!")
         else:
-            print("VCCutter - stop process")
+            print("downloader - stop process")
             self.proc.kill()
 
     def setProcess(self,popen):

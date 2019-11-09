@@ -1,7 +1,7 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Version 1.1.0
+Version 1.2.0
 
 This simple GUI for the youtube-dl runs on linux. 
 
@@ -13,6 +13,8 @@ Downloads either video(with audio) or audio only from youtube, vimeo and other p
 In addition an URL may be entered manually using the "plus" icon
 
 The URLs in the list can be saved and restored
+
+When downloading, the "Download" button becomes an "Interrupt" button, which enables you to stop the download while underway.
 
 ### Settings
 Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
