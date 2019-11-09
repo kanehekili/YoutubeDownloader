@@ -226,12 +226,20 @@ class YtWindow(Gtk.Window):
         self._showError(_t("NOT_AN_URL_ERROR"))
     
     def addURL(self,path):
+        if self._checkForDuplicates(path):
+            return
         self._longOperationStart()
         rowData=[path,"?",0.0]
         currentIter = self.fileStore.append(rowData)
         proc = YTInfo(path,self)            
         w = WorkerThread(proc.processResult,proc)
         w.start() 
+ 
+    def _checkForDuplicates(self,path):
+        for rowData in self.fileStore:
+            if rowData[0]==path:
+                return True
+        return False
  
     def injectTitle(self,text):
         self._calculateSelection()
@@ -269,8 +277,8 @@ class YtWindow(Gtk.Window):
         image.set_from_icon_name(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
         image.show()
         
-        dialog = Gtk.MessageDialog(parent=self, flags=0,  message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.OK,  text=_t("DIALOG_TITLE_ERROR"),image=image)
+        dialog = Gtk.MessageDialog(parent=self, flags=0, title=_t("DIALOG_ERROR_TITLE"),  message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,  text=_t("DIALOG_ERROR_HEADER"),image=image)
         dialog.format_secondary_markup(text)
         dialog.run()
         dialog.destroy()   
@@ -297,6 +305,7 @@ class YtWindow(Gtk.Window):
         for item in urls:
             rowData=[item[0],item[1],float(item[2])]
             self.fileStore.append(rowData)
+        self.updateDownloadButton()
         self.showStatus(_t("LIST_LOADED"))
 
     def on_tool_save(self,widget):
@@ -530,15 +539,21 @@ class YTDownloader():
         if self.current is not None:
             self._broadcastData(100.0, fulltext)       
 
-    def _broadcastData(self,progress,speed):
+    def _broadcastData(self,progress,info):
         GLib.idle_add(self.parent.injectStatus,self.current,progress)
-        GLib.idle_add(self.parent.showStatus,speed)
+        if info is not None: #yt-dl tends to reload when downloading same more than once
+            GLib.idle_add(self.parent.showStatus,info)
+        self.__clearEvents()
         
     def processResult(self,res):
         self.parent._longOperationDone()
         if res is not None:
             self.parent._showError(res)
         return GLib.SOURCE_REMOVE
+    
+    def __clearEvents(self):
+        while Gtk.events_pending():
+            Gtk.main_iteration()
 
 class YTInfo():
     def __init__(self,url,ytWin):

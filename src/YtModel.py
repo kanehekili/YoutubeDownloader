@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import json 
 import re
 import time
+from datetime import timedelta
 
 #import threading
 MODE_VIDEO=0;
@@ -30,11 +31,12 @@ if "en" in lang[0]:
     TEXT_MAP["TITLE"]="Video Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="Drop URLs onto list below"
     TEXT_MAP["BUTTON_OK"]="Download"
-    TEXT_MAP["BUTTON_CANX"]="   Done   "
+    TEXT_MAP["BUTTON_CANX"]="   Exit   "
     TEXT_MAP["BUTTON_DEL"]="Delete"
     TEXT_MAP["FOLDER_MUSIC"]="Music"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
-    TEXT_MAP["DIALOG_TITLE_ERROR"]="An error occurred )-:"
+    TEXT_MAP["DIALOG_ERROR_TITLE"]="Error Message"
+    TEXT_MAP["DIALOG_ERROR_HEADER"]="An error occurred )-:"
     TEXT_MAP["NOT_AN_URL_ERROR"]="Invalid URL"
     TEXT_MAP["FILE_SAVE"]="Name of TODO"
     TEXT_MAP["COL1"]="URL"
@@ -72,11 +74,12 @@ elif "de" in lang[0]:
     TEXT_MAP["TITLE"]="You Tube Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="URLs auf die Liste ziehen"
     TEXT_MAP["BUTTON_OK"]="Download"
-    TEXT_MAP["BUTTON_CANX"]="   Fertig   "
+    TEXT_MAP["BUTTON_CANX"]="   Schließen   "
     TEXT_MAP["BUTTON_DEL"]=" Löschen "
     TEXT_MAP["FOLDER_MUSIC"]="Musik"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
-    TEXT_MAP["DIALOG_TITLE_ERROR"]="Da ist ein Fehler passiert )-:"
+    TEXT_MAP["DIALOG_ERROR_TITLE"]="Fehler Hinweis"
+    TEXT_MAP["DIALOG_ERROR_HEADER"]="Da ist ein Fehler passiert )-:"
     TEXT_MAP["NOT_AN_URL_ERROR"]="Ungültige URL"
     TEXT_MAP["FILE_SAVE"]="Wie soll die Datei heißen?"
     TEXT_MAP["COL1"]="Adresse"
@@ -111,6 +114,9 @@ elif "de" in lang[0]:
     TEXT_MAP["NO_DL"]="youtube-dl nicht gefunden. Sollte entweder in\n /usr/bin oder /usr/local/bin sein"
     
 def _t(s):
+    if not s in TEXT_MAP:
+        print('TEXT_MAP["%s"]="missing"'%(s))
+        return s
     return TEXT_MAP[s]
 
 class ConfigAccessor():
@@ -251,23 +257,31 @@ def convertURL(rawData):
     return None
 
 #throws exception..
+import signal
 def executeAsync(cmd,commander,targetDir):
     popen = subprocess.Popen(cmd, cwd=targetDir,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)
     commander.setProcess(popen)
     for stdout_line in iter(popen.stdout.readline, ""):
-        yield stdout_line 
+        yield stdout_line
     popen.stdout.close()
     return_code = popen.wait()
     if return_code:
-        form=errorToPangoMarkup(stdout_line)
+        form=cropError(stdout_line)
         raise Exception(form)
 
-def errorToPangoMarkup(error):
+def cropError(errorText):
     form=''
-    text= error.replace('"','*')
-    text = text.split('. ') 
+    #text= error.replace('"','*')
+    text = errorText.split('. ') 
     return text[0]
 
+def errorToText(error):
+    if len(error.args)>1:
+        errTxt = error.args[1]
+    else:
+        errTxt= error.args[0]
+    return errTxt
+    
     
 #Helper class for returning either result objects or errors
 class ProcResult():
@@ -299,6 +313,7 @@ youtube-dl -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
 class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
+    DWN_SIZE =re.compile('([0-9.]+)([A-z]+)')
     DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+.iB) in ([0-9:]+)' )
     MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","--merge-output-format","mp4"]
     MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","--merge-output-format","mkv"]
@@ -309,6 +324,8 @@ class Downloader():
         self.client = receiver
         self.proc = None
         self.res = ProcResult(res="Done")
+        self.downloadtime=timedelta(minutes=0)
+        self.downloadSize=0.0
         
 
     def download(self,url,videomode,quality,targetDir):
@@ -339,7 +356,7 @@ class Downloader():
                 if err is not None:
                     self.res.error = err
         except Exception as error:
-            self.res.error=repr(error.args[0])
+            self.res.error=errorToText(error)
         return self.res   
             
     def parseAndDispatch(self,line,showProgress):
@@ -356,16 +373,24 @@ class Downloader():
         except Exception as error:
             if len(line)>5:
                 if self.ISPRESENT.match(line):
-                    self.client.onProgress(100.,"0","0")
+                    self.client.onProgressDone(None)
                 else:
                     m = self.DONE.search(line)
                     if m is not None:
-                        self.client.onProgressDone(m.group(0))
+                        t1=m.group(1)
+                        t2=m.group(2)
+                        tf = self.DWN_SIZE.match(t2)
+                        self.downloadSize+=float(tf.group(1))
+                        rate = tf.group(2)                       
+                        dm=m.group(3).split(':')
+                        td=timedelta(minutes=int(int(dm[0])),seconds=int(dm[1]))
+                        self.downloadtime+=td
+                        self.client.onProgressDone(t1+'% of '+str(self.downloadSize)+rate+" in "+str(self.downloadtime))
                     
                 print ("<"+line.rstrip())  
                 if "ERROR" in line:
                     print("error:%s"%(line));#TODO
-                    return errorToPangoMarkup(line)
+                    return cropError(line)
         return None 
     
                 
@@ -389,20 +414,26 @@ def getInfo(url):
         result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
         if len(result[1])>0:
             #This is mostly an api problem
-            form=errorToPangoMarkup(result[1].decode("utf-8"))
+            form=cropError(result[1].decode("utf-8"))
             return ProcResult(None,form)
         if len(result[0])>0:
             text= result[0].decode("utf-8")
             result = json.loads(text) #is a map
-            #json.dumps(map) is the reverse....
-            #for item in result.items():
-            #    print(item)
             return ProcResult(result,None)
     except Exception as error:
-        form=errorToPangoMarkup(repr(error.args[0]))
+        form=errorToText(error)
         print(form)
         return ProcResult(None,form)
-        
-          
+
+def convert():
+    txt="38.12Mib"
+    rex =re.compile('[0-9.]+')
+    #sx = re.compile('[A-Z][a-z]+')
+    sx = re.compile('([0-9.]+)([A-z]+)')
+    m1= rex.match(txt)
+    m2= sx.match(txt)
+    print(m2.group(1))
+    print(m2.group(2))
 if __name__ == '__main__':
+    convert()
     pass
