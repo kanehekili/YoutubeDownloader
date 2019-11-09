@@ -385,7 +385,7 @@ class Downloader():
                         dm=m.group(3).split(':')
                         td=timedelta(minutes=int(int(dm[0])),seconds=int(dm[1]))
                         self.downloadtime+=td
-                        self.client.onProgressDone(t1+'% of '+str(self.downloadSize)+rate+" in "+str(self.downloadtime))
+                        self.client.onProgressDone(t1+'% of '+format(self.downloadSize,'.2f')+rate+" in "+str(self.downloadtime))
                     
                 print ("<"+line.rstrip())  
                 if "ERROR" in line:
