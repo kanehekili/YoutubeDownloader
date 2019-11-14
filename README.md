@@ -1,7 +1,7 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Version 1.2.0
+Version 1.2.1
 
 This simple GUI for the youtube-dl runs on linux. 
 
@@ -41,17 +41,18 @@ Unfortunately Ubuntu and derivates offer a very old version of youtube-dl which 
 ```
 sudo ./installYoutube-dl.sh
 ```
-Currently Debian Stable has no problems.
+Currently Debian Stable has a working version, which can be downloaded with apt
 ### Prepare install on Arch or Manjaro
 ```
 sudo pacman -Syu python-gobject ffmpeg youtube-dl
 ```
 
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.2.0.tar)
+* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.2.1.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
 * In case your distros youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
 
-   
+### Changes
+ * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
 

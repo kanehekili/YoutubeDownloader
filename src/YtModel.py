@@ -33,7 +33,9 @@ if "en" in lang[0]:
     TEXT_MAP["BUTTON_OK"]="Download"
     TEXT_MAP["BTN_INTERRUPT"]=" Interrupt "
     TEXT_MAP["BUTTON_CANX"]="   Exit   "
-    TEXT_MAP["BUTTON_DEL"]="Delete"
+    TEXT_MAP["MENU_DEL"]="Remove"
+    TEXT_MAP["MENU_DEL_ALL"]="Remove all"
+    TEXT_MAP["MENU_RELOAD"]="Reload"
     TEXT_MAP["FOLDER_MUSIC"]="Music"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
     TEXT_MAP["DIALOG_ERROR_TITLE"]="Error Message"
@@ -79,7 +81,9 @@ elif "de" in lang[0]:
     TEXT_MAP["BUTTON_OK"]="Download"
     TEXT_MAP["BTN_INTERRUPT"]="Stoppen "
     TEXT_MAP["BUTTON_CANX"]="   Schließen   "
-    TEXT_MAP["BUTTON_DEL"]=" Löschen "
+    TEXT_MAP["MENU_DEL"]="Löschen"
+    TEXT_MAP["MENU_DEL_ALL"]="Alle löschen"
+    TEXT_MAP["MENU_RELOAD"]="Download"
     TEXT_MAP["FOLDER_MUSIC"]="Musik"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
     TEXT_MAP["DIALOG_ERROR_TITLE"]="Fehler Hinweis"
@@ -259,7 +263,6 @@ def convertURL(rawData):
     text = urllib.parse.unquote(data[0])
     aParseResult = urlparse(text)
     if "http" in aParseResult.scheme:
-        print(aParseResult.geturl())
         return aParseResult
     return None
 
@@ -332,10 +335,11 @@ class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
     DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
-    MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","--merge-output-format","mp4"]
-    MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","--merge-output-format","mkv"]
-    ANY = [YOUTUBE_DL,"-f","bestvideo+bestaudio"]
-    AUDIO = [YOUTUBE_DL,"-f","bestaudio","--extract-audio","--audio-quality","0","--audio-format","mp3"]
+    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-]+)+")
+    MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
+    MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
+    ANY = [YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s']
+    AUDIO = [YOUTUBE_DL,"-f","bestaudio","-o",'%(title)s.%(ext)s',"--extract-audio","--audio-quality","0","--audio-format","mp3"]
     
     def __init__(self,receiver):
         self.client = receiver
@@ -378,7 +382,7 @@ class Downloader():
             self.res.error=errorToText(error)
         self.proc=None
         return self.res   
-            
+    
     def parseAndDispatch(self,line,showProgress):
         
         try:        
@@ -387,7 +391,6 @@ class Downloader():
             #size = m.group(2)
             speed = m.group(3)
             if showProgress:
-                #print("%.1f size:%s speed:%s "%(progress,size,speed))
                 self.client.onProgress(progress,speed)
 
         except Exception as error:
@@ -442,18 +445,19 @@ def getInfo(url):
             return ProcResult(result,None)
     except Exception as error:
         form=errorToText(error)
-        print(form)
         return ProcResult(None,form)
 
 def convert():
-    txt="38.12Mib"
-    rex =re.compile('[0-9.]+')
-    #sx = re.compile('[A-Z][a-z]+')
-    sx = re.compile('([0-9.]+)([A-z]+)')
-    m1= rex.match(txt)
-    m2= sx.match(txt)
-    print(m2.group(1))
-    print(m2.group(2))
+    txt="[download] Destination: Pip _ A Short Animated Film-07d2dXHYb94.f137.mp4"
+    txt2= "[download] Pip _ A Short Animated Film-07d2dXHYb94.mp4 has already been downloaded and merged"
+    txt3= "[download] Destination: Poko 110 - Bowling For Minus-QwMfiVl4Wm0.f244.webm"
+    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-]+)+")
+    m=TITLE.match(txt)
+    found = m.groups()
+    print(m.group(0))
+    for item in found:
+        print("1:%s"%(item))
+    
 if __name__ == '__main__':
     convert()
     pass

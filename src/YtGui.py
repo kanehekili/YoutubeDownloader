@@ -7,7 +7,7 @@ import gi
 import YtModel
 from YtModel import Downloader
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk,GLib
+from gi.repository import Gtk,Gdk,GLib,Gio
 import os
 import threading
 
@@ -57,7 +57,6 @@ class YtWindow(Gtk.Window):
         mainbox.pack_start(self.list,True,True,0)
         mainbox.pack_end(buttonrow,False,False,0)
   
-        #self.add(mainbox)
         self.set_border_width(5)
         self.connect("delete-event", self.on_winClose, None)
         self.connect("show",self.on_Startup, None)
@@ -65,7 +64,6 @@ class YtWindow(Gtk.Window):
         self.buttonInterrupt.hide()
  
     def _createToolbar(self):
-        #self.modify_bg(Gtk.StateFlags.NORMAL, Gdk.Color(6450, 000, 0000))
         self.set_position(Gtk.WindowPosition.CENTER)
 
         toolbar = Gtk.Toolbar()
@@ -112,16 +110,21 @@ class YtWindow(Gtk.Window):
                 cell = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(name,cell,text=n);
                 column.set_resizable(True)
+                column.set_max_width(200)
                 column.set_expand(True)
             else:
                 cell = Gtk.CellRendererProgress()
                 column = Gtk.TreeViewColumn(name,cell,value=n);
+                column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
                 column.set_alignment(0.5)
             theList.append_column(column)
         
         theList.set_tooltip_text(_t("TIP_LIST"))
         self.selection = theList.get_selection()
         self.selection.connect("changed", self.on_selected)
+        theList.connect("button_press_event",self.on_contextMenu) 
+        theList.connect('key_press_event', self.on_List_key_press)
+        
         swH = Gtk.ScrolledWindow()
         swH.add(theList)
         swH.connect("drag-data-received", self.on_drag_data_received)
@@ -146,12 +149,11 @@ class YtWindow(Gtk.Window):
         #lowerBtnBox.pack_start(self.spinner,False, False, 5)
         
         self.statusField = Gtk.Label()
-        #lowerBtnBox.pack_start(self.statusField,False, False, 5) 
         theBox.pack_start(self.statusField,False, False, 5)
         theBox.pack_end(lowerBtnBox,False, False, 5)
         self.buttonStart = Gtk.Button(label=_t("BUTTON_OK"),image=Gtk.Image(stock=Gtk.STOCK_APPLY))
         self.buttonStart.set_tooltip_text(_t("TIP_BTN_OK"))
-        self.buttonStart.connect("clicked", self.on_convert_clicked)
+        self.buttonStart.connect("clicked", self.on_reload_clicked)
         lowerBtnBox.pack_end(self.buttonStart, True, True, 5)
         
         self.buttonInterrupt = Gtk.Button(label=_t("BTN_INTERRUPT"),image=Gtk.Image(stock=Gtk.STOCK_STOP))
@@ -162,18 +164,9 @@ class YtWindow(Gtk.Window):
         self.buttonCanx.set_tooltip_text(_t("TIP_BTN_CANX"))
         self.buttonCanx.connect("clicked", self.on_close_clicked)
         lowerBtnBox.pack_end(self.buttonCanx, True, True,5)
-        
-        self.buttonDel = Gtk.Button(label=_t("BUTTON_DEL"),image=Gtk.Image(stock=Gtk.STOCK_DELETE))
-        self.buttonDel.set_tooltip_text(_t("TIP_BTN_DEL"))
-        self.buttonDel.connect("clicked", self.on_delete_clicked)
-        lowerBtnBox.pack_end(self.buttonDel, True, True,padding=5)
-
         self.buttonStart.set_sensitive(False)
-        self.buttonDel.set_sensitive(False)
         frame.set_border_width(5)
-        #lowerBtnBox.set_border_width(5)
         theBox.set_border_width(5)
-        #frame.add(lowerBtnBox)
         frame.add(theBox)
         return frame
 
@@ -192,27 +185,15 @@ class YtWindow(Gtk.Window):
         self.config.store()
 
     def on_Startup(self,widget, data):
-        print("start")
         GLib.idle_add(self.buttonInterrupt.hide)
         self.spinner.hide()   
         if not self.model.hasValidLibrary():     
             self._showError(_t("NO_DL"))
 
-    def on_map(self,widget,data):
-        print("map")
-        self.buttonInterrupt.show()
-
     def on_close_clicked(self, widget):
         self.should_abort=True
         self.on_winClose(None,None,None)
         Gtk.main_quit()
-        
-        
-    def on_convert_clicked(self, widget):
-        self.currentProc = YTDownloader(self)
-        self._longOperationStart()
-        w = WorkerThread(self.currentProc.processResult,self.currentProc)
-        w.start() 
 
     def on_interrupt_clicked(self,widget):
         if self.currentProc is not None:
@@ -220,8 +201,6 @@ class YtWindow(Gtk.Window):
 
     def _longOperationStart(self):
         self.should_abort=False
-        
-        self.buttonDel.set_sensitive(False)
         self.buttonCanx.set_sensitive(False)
         #morph a button
         if self.currentProc is None:
@@ -240,7 +219,7 @@ class YtWindow(Gtk.Window):
         if self.currentProc is not None:
             self.buttonInterrupt.hide()
             self.buttonStart.show()
-            self.currentProc=None
+            self.currentProc=None  
         self.updateDownloadButton()
         self.buttonCanx.set_sensitive(True)
 
@@ -248,7 +227,7 @@ class YtWindow(Gtk.Window):
 
     def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
         if info == TARGET_ENTRY_TEXT:
-            rawURL =  data.get_data().decode("utf8")
+            rawURL =  data.get_data().decode("utf8").rstrip()
             parseResult = YtModel.convertURL(rawURL)
             if parseResult is not None:
                     #process spawned - returns immediately
@@ -262,10 +241,22 @@ class YtWindow(Gtk.Window):
             return
         self._longOperationStart()
         rowData=[path,"?",0.0]
-        currentIter = self.fileStore.append(rowData)
-        proc = YTInfo(path,self)            
+        nextIter= self.fileStore.append(rowData)
+        self._fetchTitle(nextIter,path)
+        self._fetchVideo(None)
+
+    def _fetchVideo(self,aiter):
+        if self.currentProc is None:
+            self.currentProc = YTDownloader(self,aiter)
+            self._longOperationStart()
+            w = WorkerThread(self.currentProc.processResult,self.currentProc)
+            w.start()         
+
+    def _fetchTitle(self,newIter,url):
+        proc = YTInfo(self,newIter,url)            
         w = WorkerThread(proc.processResult,proc)
-        w.start() 
+        w.start()
+
  
     def _checkForDuplicates(self,path):
         for rowData in self.fileStore:
@@ -273,9 +264,8 @@ class YtWindow(Gtk.Window):
                 return True
         return False
  
-    def injectTitle(self,text):
-        self._calculateSelection()
-        self.fileStore.set_value(self.treeIter, 1, text)
+    def injectTitle(self,aiter,text):
+        self.fileStore.set_value(aiter, 1, text)
         return GLib.SOURCE_REMOVE
     
     def injectStatus(self,aniter,aFloat):
@@ -287,23 +277,64 @@ class YtWindow(Gtk.Window):
         n = self.fileStore.iter_n_children( parent )
         result = n and self.fileStore.iter_nth_child( parent, n - 1 )
         self.treeIter = result
-
     
     def on_selected(self, selection):
         model, self.treeIter = selection.get_selected()
         hasItems = len(self.fileStore) != 0
-        self.buttonDel.set_sensitive(hasItems)
         self.buttonStart.set_sensitive(hasItems)
+
+    def on_contextMenu(self,treeView,event):
+        if event.button is not 3:
+            return False
+        menu = Gtk.Menu()
+        menu.attach_to_widget(treeView)
+        path = treeView.get_path_at_pos(int(event.x), int(event.y))
+        if path is not None:
+            treeiter = self.fileStore.get_iter(path[0])
+            rm = Gtk.ImageMenuItem(label=_t("MENU_DEL"))
+            rm.set_image(Gtk.Image(stock=Gtk.STOCK_CANCEL))
+            rm.connect("activate",self.on_delete_clicked)
+            menu.add(rm)    
+        
+        rmall = Gtk.ImageMenuItem(label=_t("MENU_DEL_ALL"))
+        rmall.set_image(Gtk.Image(stock=Gtk.STOCK_DELETE))
+        rmall.connect("activate",self.on_deleteAll_clicked)
+        menu.add(rmall)
+        menu.show_all()
+        menu.popup(None, None, None, None, event.button, event.time)
+
+        return False  
+
+    def on_List_key_press(self,treeview,event):
+        #code:119 val:65535 = delete
+        val = event.get_keyval()[1]
+        scan = event.get_scancode()
+        if scan == 119 and val == 65535:
+            (model, item) = self.selection.get_selected()
+            if item is not None:
+                model.remove(item)
+                return True
+        return False
 
     def on_delete_clicked(self,widget):
         (model, item) = self.selection.get_selected()
         if item is not None:
             model.remove(item)
     
+    def on_reload_clicked(self,widget):
+        (model, item) = self.selection.get_selected()
+        if item is not None:
+            self._fetchVideo(item)
+    
+    
+    def on_deleteAll_clicked(self,widget):
+        self.fileStore.clear()
+    
+    
     def updateDownloadButton(self):
-        hasItems = len(self.fileStore) != 0  
-        self.buttonStart.set_sensitive(hasItems)
-        
+        (model, item) = self.selection.get_selected()
+        self.buttonStart.set_sensitive(item is not None)
+    
     def _showError(self,text):
         image = Gtk.Image()
         image.set_from_icon_name(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
@@ -337,7 +368,6 @@ class YtWindow(Gtk.Window):
         for item in urls:
             rowData=[item[0],item[1],float(item[2])]
             self.fileStore.append(rowData)
-        self.updateDownloadButton()
         self.showStatus(_t("LIST_LOADED"))
 
     def on_tool_save(self,widget):
@@ -370,10 +400,9 @@ class YtWindow(Gtk.Window):
 
 class SettingsDialog(Gtk.Dialog):
     def __init__(self, parent):
-        Gtk.Dialog.__init__(self, _t("SETTINGS_DLG"), parent, 0,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_OK, Gtk.ResponseType.OK))
-
+        Gtk.Dialog.__init__(self, title=_t("SETTINGS_DLG"), parent=parent, flags=0)
+        self.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OK, Gtk.ResponseType.OK)
         self.parent = parent
         self.set_default_response(Gtk.ResponseType.OK)
         x=parent.model.getScreenX()/2
@@ -499,10 +528,11 @@ class SettingsDialog(Gtk.Dialog):
         return self.format
 class URLDialog(Gtk.Dialog):
     def __init__(self, parent):
-        Gtk.Dialog.__init__(self, _t("URL_DLG"), parent, 0,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_OK, Gtk.ResponseType.OK))
-        x=parent.model.getScreenX()/3
+        Gtk.Dialog.__init__(self, _t("URL_DLG"), parent, 0)
+        self.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        geo = parent.get_allocation()
+        x=geo.width*2/3
         y=parent.model.getScreenY()/8
         self.set_default_size(x, y)
         self._initWidgets()
@@ -516,12 +546,12 @@ class URLDialog(Gtk.Dialog):
         headBox.pack_start(grpLabel, True, True,5)
         
         self.entry = Gtk.Entry()
-        headBox.pack_start(self.entry,True,True,5)
+        headBox.pack_start(self.entry,True,True,0)
+        self.entry.set_margin_start(5)
+        self.entry.set_margin_end(5)
         
         box = self.get_content_area()
         box.add(headBox)
-        #box.add(srcBox)
-        #box.add(destBox)
         self.show_all()
         
     def getInput(self):
@@ -542,10 +572,11 @@ class WorkerThread(threading.Thread):
         self.processor.interrupt()
 
 class YTDownloader():
-    def __init__(self,ytWin):
+    def __init__(self,ytWin,oneIter):
         self.parent=ytWin
         self.current=None
-        self.proc = None;
+        self.proc = None
+        self.oneIter = oneIter
     
     def interrupt(self):
         if self.proc is not None:
@@ -554,7 +585,10 @@ class YTDownloader():
         
     def run(self):
         fs=self.parent.fileStore
-        aiter = fs.get_iter_first ()
+        if self.oneIter is None:
+            aiter = fs.get_iter_first ()
+        else:
+            aiter = self.oneIter
         mode = self.parent.model.getDownloadType()
         quality = self.parent.model.getFormat()
         if mode==YtModel.MODE_AUDIO:
@@ -570,7 +604,10 @@ class YTDownloader():
             res = self.proc.download(url, mode,quality, targetDir)
             if res.hasError():
                 return res.error
-            aiter = fs.iter_next(aiter)
+            if self.oneIter is None:
+                aiter = fs.iter_next(aiter)
+            else:
+                aiter=None
         return None
     
     def onProgress(self,progress,speed):
@@ -579,15 +616,15 @@ class YTDownloader():
 
     def onProgressDone(self,fulltext):
         if self.current is not None:
-            self._broadcastData(100.0, fulltext)       
+            self._broadcastData(100.0, fulltext) 
 
     def _broadcastData(self,progress,info):
         if progress is not None:
             GLib.idle_add(self.parent.injectStatus,self.current,progress)
-        if info is not None: #yt-dl tends to reload when downloading same more than once
+        if info is not None: 
             GLib.idle_add(self.parent.showStatus,info)
         self.__clearEvents()
-        
+
     def processResult(self,res):
         self.parent._longOperationDone()
         if res is not None:
@@ -599,26 +636,26 @@ class YTDownloader():
             Gtk.main_iteration()
 
 class YTInfo():
-    def __init__(self,url,ytWin):
+    def __init__(self,ytWin,aiter,url):
         self.target=url
         self.parent=ytWin
-        
+        self.aiter = aiter
+         
     def run(self):
         res = YtModel.getInfo(self.target)
         return res
-    
+     
     def processResult(self,res):
-        self.parent._longOperationDone()
         if res.hasError():
             self._handleError(res.error)
         else:
             title = res.result["title"]
-            self.parent.injectTitle(title)
+            self.parent.injectTitle(self.aiter,title)
         return GLib.SOURCE_REMOVE
-    
+     
     def _handleError(self,result):
         self.parent._showError(result)
-    
+     
     def interrupt(self):
         pass
     
