@@ -7,7 +7,7 @@ import gi
 import YtModel
 from YtModel import Downloader
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk,Gdk,GLib,Gio
+from gi.repository import Gtk,Gdk,GLib
 import os
 import threading
 
@@ -40,7 +40,6 @@ class YtWindow(Gtk.Window):
         self.config=model.config
         self._initWidgets()
         self.define_url_targets()
-        self.treeIter = None
         self.currentProc=None
         
     def _initWidgets(self):
@@ -82,7 +81,7 @@ class YtWindow(Gtk.Window):
         dd = Gtk.ComboBoxText()
         dd.append_text(_t("COMBO_VIDEO"))
         dd.append_text(_t("COMBO_AUDIO"))
-        dd.set_active(self.model.getDownloadType())
+        dd.set_active(self.model.getDownloadTypeIndex())
         dd.set_tooltip_text(_t("TIP_TOOL_COMBO"))
         dd.connect("changed",self.on_tool_comboChanged)
         combo = Gtk.ToolItem()
@@ -103,18 +102,29 @@ class YtWindow(Gtk.Window):
         return vbox
     
     def _createList(self):
-        self.fileStore = Gtk.ListStore(str,str,float);
+        #url,title,progress, downloadtype
+        self.fileStore = Gtk.ListStore(str,str,float,str);
         theList = Gtk.TreeView(model=self.fileStore)
-        for n,name in enumerate([_t("COL1"),_t("COL2"),_t("COL3")]):
-            if n is not 2:
+        theList.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
+        for n,name in enumerate([_t("COL1"),_t("COL2"),_t("COL3"),_t("COL4")]):
+            if n < 2:
                 cell = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(name,cell,text=n);
-                column.set_resizable(True)
+                #column.set_cell_data_func(cell, self._drawCellData, None)
+                column.set_resizable(False)
                 column.set_max_width(200)
                 column.set_expand(True)
-            else:
+            elif n == 2:
                 cell = Gtk.CellRendererProgress()
                 column = Gtk.TreeViewColumn(name,cell,value=n);
+                column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+                column.set_alignment(0.5)
+            else:
+                cell = Gtk.CellRendererText()
+                #cell.set_alignment(1)
+                cell.set_property('xalign',0.5)
+                cell.set_property('cell-background', 'lightblue')
+                column = Gtk.TreeViewColumn(name,cell,text=n);
                 column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
                 column.set_alignment(0.5)
             theList.append_column(column)
@@ -124,12 +134,14 @@ class YtWindow(Gtk.Window):
         self.selection.connect("changed", self.on_selected)
         theList.connect("button_press_event",self.on_contextMenu) 
         theList.connect('key_press_event', self.on_List_key_press)
-        
+        theList.connect("row-activated", self.on_row_doubleClicked)
         swH = Gtk.ScrolledWindow()
         swH.add(theList)
         swH.connect("drag-data-received", self.on_drag_data_received)
         return swH
     
+    def _drawCellData(self,column, cell, model, aiter, user_data=None):
+        cell.set_property("cell-background","yellow")
  
     def define_url_targets(self):
         self.list.drag_dest_set(Gtk.DestDefaults.ALL, [], DRAG_ACTION)
@@ -240,7 +252,7 @@ class YtWindow(Gtk.Window):
         if self._checkForDuplicates(path):
             return
         self._longOperationStart()
-        rowData=[path,"?",0.0]
+        rowData=[path,"?",0.0,self.model.getDownloadType()]
         nextIter= self.fileStore.append(rowData)
         self._fetchTitle(nextIter,path)
         self._fetchVideo(None)
@@ -260,7 +272,8 @@ class YtWindow(Gtk.Window):
  
     def _checkForDuplicates(self,path):
         for rowData in self.fileStore:
-            if rowData[0]==path:
+            print("url:%s and dwn:%s"%(rowData[0],rowData[3]))
+            if rowData[0]==path and rowData[3]== self.model.getDownloadType():
                 return True
         return False
  
@@ -276,25 +289,33 @@ class YtWindow(Gtk.Window):
         parent = None
         n = self.fileStore.iter_n_children( parent )
         result = n and self.fileStore.iter_nth_child( parent, n - 1 )
-        self.treeIter = result
     
     def on_selected(self, selection):
-        model, self.treeIter = selection.get_selected()
+        model, treeIter = selection.get_selected()
         hasItems = len(self.fileStore) != 0
         self.buttonStart.set_sensitive(hasItems)
+        if treeIter is not None:
+            #update the download type
+            if model[treeIter][3] == 0:
+                self.showStatus("Video")
+            else:
+                self.showStatus("Audio")
 
     def on_contextMenu(self,treeView,event):
-        if event.button is not 3:
+        if event.button != 3:
             return False
         menu = Gtk.Menu()
         menu.attach_to_widget(treeView)
         path = treeView.get_path_at_pos(int(event.x), int(event.y))
         if path is not None:
-            treeiter = self.fileStore.get_iter(path[0])
             rm = Gtk.ImageMenuItem(label=_t("MENU_DEL"))
             rm.set_image(Gtk.Image(stock=Gtk.STOCK_CANCEL))
             rm.connect("activate",self.on_delete_clicked)
             menu.add(rm)    
+            open = Gtk.ImageMenuItem(label=_t("MENU_OPEN"))
+            open.set_image(Gtk.Image(stock=Gtk.STOCK_FILE))
+            open.connect("activate",self.on_open_clicked)
+            menu.add(open)    
         
         rmall = Gtk.ImageMenuItem(label=_t("MENU_DEL_ALL"))
         rmall.set_image(Gtk.Image(stock=Gtk.STOCK_DELETE))
@@ -304,6 +325,24 @@ class YtWindow(Gtk.Window):
         menu.popup(None, None, None, None, event.button, event.time)
 
         return False  
+
+    
+    
+    def on_row_doubleClicked(self, widget, row, col):
+        model = widget.get_model()
+        fn = model[row][1]
+        dnwType = model[row][3]
+        if dnwType == YtModel.MODE_VIDEO:
+            target=self.model.getVideoPath()
+        else:
+            target=self.model.getMusicPath()
+        
+        for root,dirs,files in os.walk(target):
+            for name in files:
+                if fn in name:
+                    YtModel.play(root,name)
+                    break
+        return True
 
     def on_List_key_press(self,treeview,event):
         #code:119 val:65535 = delete
@@ -320,6 +359,16 @@ class YtWindow(Gtk.Window):
         (model, item) = self.selection.get_selected()
         if item is not None:
             model.remove(item)
+            
+    def on_open_clicked(self,widget):
+        (model, item) = self.selection.get_selected()
+        print(model[item][3])
+        dnwType = model[item][3]
+        if dnwType == YtModel.MODE_VIDEO:
+            target=self.model.getVideoPath()
+        else:
+            target=self.model.getMusicPath()
+        YtModel.openFolder(target)
     
     def on_reload_clicked(self,widget):
         (model, item) = self.selection.get_selected()
@@ -366,7 +415,7 @@ class YtWindow(Gtk.Window):
     def on_tool_load(self,widget):
         urls = self.model.getURLList()
         for item in urls:
-            rowData=[item[0],item[1],float(item[2])]
+            rowData=[item[0],item[1],float(item[2]),item[3]]
             self.fileStore.append(rowData)
         self.showStatus(_t("LIST_LOADED"))
 
@@ -377,13 +426,14 @@ class YtWindow(Gtk.Window):
             path = self.fileStore.get_value (item, 0)
             title = self.fileStore.get_value (item, 1)
             mode = self.fileStore.get_value (item, 2)
-            urls.append([path,title,str(mode)])
+            type = self.fileStore.get_value (item, 3)
+            urls.append([path,title,str(mode),str(type)])
             item = self.fileStore.iter_next(item)
         self.model.setURLList(urls)
         self.showStatus(_t("LIST_SAVED"))
 
     def on_tool_comboChanged(self,widget):
-        self.model.setDownloadType(widget.get_active())
+        self.model.setDownloadTypeIndex(widget.get_active())
         #0==Video, 1== Audio
     
     def on_tool_settings(self,widget):
@@ -582,11 +632,13 @@ class YTDownloader():
         if self.proc is not None:
             self.proc.stop()
             self.proc= None
-        
+    #TODO THOSE ENTIRES WITH 100% SHOULD NOT BE DOWNLOADED AGAIN!!!    
     def run(self):
         fs=self.parent.fileStore
+        singleShot=True
         if self.oneIter is None:
             aiter = fs.get_iter_first ()
+            singleShot=False
         else:
             aiter = self.oneIter
         mode = self.parent.model.getDownloadType()
@@ -599,12 +651,15 @@ class YTDownloader():
         self.proc = Downloader(self)
         while ( aiter != None and self.proc is not None):
             self.current=aiter
-            self.onProgress(0.0, "0.0KiB")
-            url = fs.get_value (aiter, 0)
-            res = self.proc.download(url, mode,quality, targetDir)
-            if res.hasError():
-                return res.error
-            if self.oneIter is None:
+            print("single shot %s url:%s or: %.3f"%(singleShot,fs.get_value(aiter,0),fs.get_value(aiter,2)))
+            if singleShot or fs.get_value(aiter,2)< 99.99:
+                
+                self.onProgress(0.0, "0.0KiB")
+                url = fs.get_value (aiter, 0)
+                res = self.proc.download(url, mode,quality, targetDir)
+                if res.hasError():
+                    return res.error
+            if not singleShot:
                 aiter = fs.iter_next(aiter)
             else:
                 aiter=None
@@ -614,9 +669,10 @@ class YTDownloader():
         if self.current is not None:
             self._broadcastData(progress, speed) 
 
-    def onProgressDone(self,fulltext):
+    def onProgressDone(self,fulltext,fileName):
         if self.current is not None:
-            self._broadcastData(100.0, fulltext) 
+            self._broadcastData(100.0, fulltext)
+            self._updateTitle(fileName)
 
     def _broadcastData(self,progress,info):
         if progress is not None:
@@ -625,6 +681,11 @@ class YTDownloader():
             GLib.idle_add(self.parent.showStatus,info)
         self.__clearEvents()
 
+    def _updateTitle(self,title):
+        if title is not None:        
+            GLib.idle_add(self.parent.injectTitle,self.current,title)
+            self.__clearEvents()
+                          
     def processResult(self,res):
         self.parent._longOperationDone()
         if res is not None:

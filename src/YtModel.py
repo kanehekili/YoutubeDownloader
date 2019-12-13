@@ -16,8 +16,8 @@ import time
 from datetime import timedelta
 
 #import threading
-MODE_VIDEO=0;
-MODE_AUDIO=1;
+MODE_VIDEO="V";
+MODE_AUDIO="A";
 lang = locale.getdefaultlocale()
 
 YOUTUBE_DL="/usr/bin/youtube-dl"
@@ -36,6 +36,7 @@ if "en" in lang[0]:
     TEXT_MAP["MENU_DEL"]="Remove"
     TEXT_MAP["MENU_DEL_ALL"]="Remove all"
     TEXT_MAP["MENU_RELOAD"]="Reload"
+    TEXT_MAP["MENU_OPEN"]="Open Folder"
     TEXT_MAP["FOLDER_MUSIC"]="Music"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
     TEXT_MAP["DIALOG_ERROR_TITLE"]="Error Message"
@@ -45,6 +46,7 @@ if "en" in lang[0]:
     TEXT_MAP["COL1"]="URL"
     TEXT_MAP["COL2"]="Title"
     TEXT_MAP["COL3"]="Status"
+    TEXT_MAP["COL4"]="A/V"
     TEXT_MAP["INSTALL_YT"]="Please install youtube-dl and ffmpeg"
     TEXT_MAP["TIP_TOOL_ADD"]="Add URL manually"
     TEXT_MAP["TIP_TOOL_OPEN"]="Load saved URL List"
@@ -84,6 +86,7 @@ elif "de" in lang[0]:
     TEXT_MAP["MENU_DEL"]="Löschen"
     TEXT_MAP["MENU_DEL_ALL"]="Alle löschen"
     TEXT_MAP["MENU_RELOAD"]="Download"
+    TEXT_MAP["MENU_OPEN"]="Ordner öffnen"
     TEXT_MAP["FOLDER_MUSIC"]="Musik"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
     TEXT_MAP["DIALOG_ERROR_TITLE"]="Fehler Hinweis"
@@ -93,6 +96,7 @@ elif "de" in lang[0]:
     TEXT_MAP["COL1"]="Adresse"
     TEXT_MAP["COL2"]="Titel"
     TEXT_MAP["COL3"]="Status"
+    TEXT_MAP["COL4"]="A/V"
     TEXT_MAP["INSTALL_YT"]="Bitte youtube-dl und ffmpeg installieren"
     TEXT_MAP["TIP_TOOL_ADD"]="Youtube URL eingeben"
     TEXT_MAP["TIP_TOOL_OPEN"]="URL Liste laden"
@@ -197,7 +201,7 @@ class Model():
                 self.config.add("DEST_VIDEO",pathV)
             else:
                 self._setEmergencyFolder(home,"DEST_VIDEO")
-            self.config.add("DOWNLOAD_TYPE",str(MODE_VIDEO))#video or audio
+            self.config.add("DOWNLOAD_TYPE",MODE_VIDEO)#video or audio
             self.config.add("URLList",json.dumps([]))
             self.config.add("FORMAT",self.FORMATS[0])
     
@@ -225,11 +229,21 @@ class Model():
     def setVideoPath(self,path):
         self.config.add("DEST_VIDEO",path)   
          
+    def getDownloadTypeIndex(self):
+        mode = self.config.get("DOWNLOAD_TYPE")
+        if mode is MODE_VIDEO:
+            return 0;
+        return 1;
+
     def getDownloadType(self):
-        return self.config.getInt("DOWNLOAD_TYPE")
+        return self.config.get("DOWNLOAD_TYPE")
     
-    def setDownloadType(self,anInt):
-        self.config.add("DOWNLOAD_TYPE", str(anInt))
+    def setDownloadTypeIndex(self,anInt):
+        #0==Video, 1== Audio
+        if anInt == 0:
+            self.config.add("DOWNLOAD_TYPE", MODE_VIDEO)
+        else:
+            self.config.add("DOWNLOAD_TYPE", MODE_AUDIO)
     
     def getURLList(self):
         txt = self.config.get("URLList")
@@ -238,6 +252,7 @@ class Model():
     def setURLList(self,anArray):
         txt= json.dumps(anArray)
         self.config.add("URLList",txt)
+        self.config.store()
     
     def setFormat(self,aString):
         self.config.add("FORMAT",aString)
@@ -335,7 +350,7 @@ class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
     DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
-    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-]+)+")
+    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-\w']+)+")
     MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
     MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
     ANY = [YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s']
@@ -347,6 +362,7 @@ class Downloader():
         self.res = ProcResult(res="Done")
         self.downloadtime=timedelta(minutes=0)
         self.downloadSize=0.0
+        self.filename=None
         
 
     def download(self,url,videomode,quality,targetDir):
@@ -384,7 +400,6 @@ class Downloader():
         return self.res   
     
     def parseAndDispatch(self,line,showProgress):
-        
         try:        
             m = self.REGEXP.search(line) 
             progress = float(m.group(1))
@@ -396,7 +411,7 @@ class Downloader():
         except Exception as error:
             if len(line)>5:
                 if self.ISPRESENT.match(line):
-                    self.client.onProgressDone(_t("ALREADY_THERE"))
+                    self.client.onProgressDone(_t("ALREADY_THERE"),self.filename)
                 else:
                     m = self.DONE.search(line)
                     if m is not None:
@@ -408,8 +423,11 @@ class Downloader():
                         dm=dur.split(':')
                         td=timedelta(minutes=int(int(dm[0])),seconds=int(dm[1]))
                         self.downloadtime+=td
-                        self.client.onProgressDone(proz+'% of '+format(self.downloadSize,'.2f')+unit+" in "+str(self.downloadtime))
-                    
+                        self.client.onProgressDone(proz+'% of '+format(self.downloadSize,'.2f')+unit+" in "+str(self.downloadtime),self.filename)
+                    else:
+                        fn = self.TITLE.search(line)
+                        if fn is not None:
+                            self.filename = fn.group(1)
                 print ("<"+line.rstrip())  
                 if "ERROR" in line:
                     print("error:%s"%(line));#TODO
@@ -447,17 +465,40 @@ def getInfo(url):
         form=errorToText(error)
         return ProcResult(None,form)
 
+def openFile(path):
+    subprocess.call(('xdg-open',path))
+#TODO make it async in thread
+
+def play(root,name):
+    target = os.path.join(root,name)
+    cmd = ['xdg-open',target]
+    process = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    #poll?
+
+def openFolder(root):
+    cmd = ['xdg-open',root]
+    process = subprocess.call(cmd)
+
+
 def convert():
-    txt="[download] Destination: Pip _ A Short Animated Film-07d2dXHYb94.f137.mp4"
-    txt2= "[download] Pip _ A Short Animated Film-07d2dXHYb94.mp4 has already been downloaded and merged"
-    txt3= "[download] Destination: Poko 110 - Bowling For Minus-QwMfiVl4Wm0.f244.webm"
-    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-]+)+")
-    m=TITLE.match(txt)
-    found = m.groups()
-    print(m.group(0))
-    for item in found:
-        print("1:%s"%(item))
+    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-\w']+)+")
     
+    txt=[0 for x in range(5)]
+    txt[0]="[download] De 23$%&/&=)?hfggfdgsdf sdfsdwe3454767565645.mp4"
+    txt[1]="[download] Destination: Pip _ A Short Animated Film-07d2dXHYb94.f137.mp4"
+    txt[2]= "[download] Pip _ A Short Animated Film-07d2dXHYb94.mp4 has already been downloaded and merged"
+    txt[3]= "[download] Destination: Poko 110 - Bowling For Minus-QwMfiVl4Wm0.f244.webm"
+    txt[4]="[download] Destination: CGI 3D Animated Short - 'Take Me Home' - by Nair Archawattana _ TheCGBros.f137.mp4"
+    for index in range(len(txt)):
+        line= txt[index]
+        if TITLE.match(line):
+            s=TITLE.search(line)
+            found = s.groups()
+            print(s.group(0))
+            for item in found:
+                print("1:%s"%(item))
+        else:
+            print("not:",line)
 if __name__ == '__main__':
     convert()
     pass

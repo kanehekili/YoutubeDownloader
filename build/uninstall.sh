@@ -7,5 +7,5 @@ fi
 
 sudo rm /usr/share/applications/Yt.desktop
 sudo rm -rf /usr/local/bin/YtDownloader
-
+rm $HOME/.config/YtDownloader.ini
 echo "App removed."
