@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 Created on Oct 25, 2019
 
@@ -7,7 +8,7 @@ import gi
 import YtModel
 from YtModel import Downloader
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk,Gdk,GLib
+from gi.repository import Gtk,Gdk,GLib,Pango
 import os
 import threading
 
@@ -103,8 +104,9 @@ class YtWindow(Gtk.Window):
     
     def _createList(self):
         #url,title,progress, downloadtype
-        self.fileStore = Gtk.ListStore(str,str,float,str);
+        self.fileStore = Gtk.ListStore(str,str,float,str)
         theList = Gtk.TreeView(model=self.fileStore)
+        theList.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         theList.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
         for n,name in enumerate([_t("COL1"),_t("COL2"),_t("COL3"),_t("COL4")]):
             if n < 2:
@@ -124,6 +126,7 @@ class YtWindow(Gtk.Window):
                 #cell.set_alignment(1)
                 cell.set_property('xalign',0.5)
                 cell.set_property('cell-background', 'lightblue')
+                cell.set_property('foreground', 'darkgreen')
                 column = Gtk.TreeViewColumn(name,cell,text=n);
                 column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
                 column.set_alignment(0.5)
@@ -140,6 +143,7 @@ class YtWindow(Gtk.Window):
         swH.connect("drag-data-received", self.on_drag_data_received)
         return swH
     
+    #ain't used
     def _drawCellData(self,column, cell, model, aiter, user_data=None):
         cell.set_property("cell-background","yellow")
  
@@ -158,14 +162,14 @@ class YtWindow(Gtk.Window):
         
         self.spinner = Gtk.Spinner()
         theBox.pack_start(self.spinner,False, False, 5)
-        #lowerBtnBox.pack_start(self.spinner,False, False, 5)
         
         self.statusField = Gtk.Label()
-        theBox.pack_start(self.statusField,False, False, 5)
-        theBox.pack_end(lowerBtnBox,False, False, 5)
+        self.statusField.set_ellipsize(Pango.EllipsizeMode.END)
+        theBox.pack_start(self.statusField,expand=False, fill=False, padding=5)
+        theBox.pack_end(lowerBtnBox,expand=False, fill=False, padding=5)
         self.buttonStart = Gtk.Button(label=_t("BUTTON_OK"),image=Gtk.Image(stock=Gtk.STOCK_APPLY))
         self.buttonStart.set_tooltip_text(_t("TIP_BTN_OK"))
-        self.buttonStart.connect("clicked", self.on_reload_clicked)
+        self.buttonStart.connect("clicked", self.on_download_clicked)
         lowerBtnBox.pack_end(self.buttonStart, True, True, 5)
         
         self.buttonInterrupt = Gtk.Button(label=_t("BTN_INTERRUPT"),image=Gtk.Image(stock=Gtk.STOCK_STOP))
@@ -176,7 +180,6 @@ class YtWindow(Gtk.Window):
         self.buttonCanx.set_tooltip_text(_t("TIP_BTN_CANX"))
         self.buttonCanx.connect("clicked", self.on_close_clicked)
         lowerBtnBox.pack_end(self.buttonCanx, True, True,5)
-        self.buttonStart.set_sensitive(False)
         frame.set_border_width(5)
         theBox.set_border_width(5)
         frame.add(theBox)
@@ -184,10 +187,12 @@ class YtWindow(Gtk.Window):
 
     def showStatus(self,text):
         self.statusField.set_label(text) 
+        self.statusField.set_tooltip_text(text)
         return GLib.SOURCE_REMOVE
     
     def clearStatus(self):
         self.statusField.set_label("")
+        self.statusField.set_tooltip_text("")
         return GLib.SOURCE_REMOVE
     
     def on_winClose(self, widget, event, data):
@@ -232,7 +237,7 @@ class YtWindow(Gtk.Window):
             self.buttonInterrupt.hide()
             self.buttonStart.show()
             self.currentProc=None  
-        self.updateDownloadButton()
+        self.buttonStart.set_sensitive(True)            
         self.buttonCanx.set_sensitive(True)
 
 
@@ -249,57 +254,76 @@ class YtWindow(Gtk.Window):
         self._showError(_t("NOT_AN_URL_ERROR"))
     
     def addURL(self,path):
+        #Shortcut for singel entries: wont work on lists....
         if self._checkForDuplicates(path):
             return
         self._longOperationStart()
-        rowData=[path,"?",0.0,self.model.getDownloadType()]
-        nextIter= self.fileStore.append(rowData)
-        self._fetchTitle(nextIter,path)
-        self._fetchVideo(None)
+        self._fetchTitleList(path)
 
-    def _fetchVideo(self,aiter):
+    def _fetchVideo(self,rows):
         if self.currentProc is None:
-            self.currentProc = YTDownloader(self,aiter)
+            self.currentProc = YTDownloader(self,rows)
             self._longOperationStart()
             w = WorkerThread(self.currentProc.processResult,self.currentProc)
             w.start()         
 
-    def _fetchTitle(self,newIter,url):
-        proc = YTInfo(self,newIter,url)            
+    def _fetchTitleList(self,url):
+        proc = YTInfo(self,url)
         w = WorkerThread(proc.processResult,proc)
         w.start()
-
  
     def _checkForDuplicates(self,path):
+        surl=self._shortUrl(path)
         for rowData in self.fileStore:
             print("url:%s and dwn:%s"%(rowData[0],rowData[3]))
-            if rowData[0]==path and rowData[3]== self.model.getDownloadType():
+            if rowData[0]==surl and rowData[3]== self.model.getDownloadType():
                 return True
         return False
  
-    def injectTitle(self,aiter,text):
-        self.fileStore.set_value(aiter, 1, text)
+    def _shortUrl(self,anUrl):
+        splice = anUrl.split('?v=')
+        if len(splice)>1:
+            return splice[1]
+        return anUrl
+ 
+    def injectRecordList(self,modelData):
+        rowData=["?","?",0.0,self.model.getDownloadType()]
+        for entry in modelData:
+            newPath = entry[0]
+            if not self._checkForDuplicates(newPath):
+                nextIter= self.fileStore.append(rowData)
+                self.fileStore.set_value(nextIter, 0, newPath)
+                self.fileStore.set_value(nextIter, 1, entry[1])
         return GLib.SOURCE_REMOVE
+        
+    
+    def updateTitle(self,aiter,text):
+        self.fileStore.set_value(aiter, 1, text)
+        return GLib.SOURCE_REMOVE    
     
     def injectStatus(self,aniter,aFloat):
         self.fileStore.set_value(aniter,2,aFloat)
         return GLib.SOURCE_REMOVE
     
+    '''
     def _calculateSelection(self):
         parent = None
         n = self.fileStore.iter_n_children( parent )
         result = n and self.fileStore.iter_nth_child( parent, n - 1 )
+    '''
     
     def on_selected(self, selection):
-        model, treeIter = selection.get_selected()
+        (model, paths) = selection.get_selected_rows()
         hasItems = len(self.fileStore) != 0
-        self.buttonStart.set_sensitive(hasItems)
-        if treeIter is not None:
-            #update the download type
-            if model[treeIter][3] == 0:
-                self.showStatus("Video")
-            else:
-                self.showStatus("Audio")
+        txt=[]
+        if len(paths) > 0:
+            for item in paths:
+                txt.append(model[item][1])
+            res= "/".join(txt)
+            self.showStatus(res)                                        
+
+        else:
+            self.clearStatus()
 
     def on_contextMenu(self,treeView,event):
         if event.button != 3:
@@ -308,23 +332,40 @@ class YtWindow(Gtk.Window):
         menu.attach_to_widget(treeView)
         path = treeView.get_path_at_pos(int(event.x), int(event.y))
         if path is not None:
+            self.selection.select_path(path[0])
             rm = Gtk.ImageMenuItem(label=_t("MENU_DEL"))
             rm.set_image(Gtk.Image(stock=Gtk.STOCK_CANCEL))
             rm.connect("activate",self.on_delete_clicked)
-            menu.add(rm)    
-            open = Gtk.ImageMenuItem(label=_t("MENU_OPEN"))
-            open.set_image(Gtk.Image(stock=Gtk.STOCK_FILE))
-            open.connect("activate",self.on_open_clicked)
-            menu.add(open)    
+            '''
+            This simply don't work - Thats where GTK stuff is heading....
+            rm=Gtk.MenuItem()
+            img=Gtk.Image(stock=Gtk.STOCK_CANCEL)
+            lbl=Gtk.Label(label=_t("MENU_DEL"))
+            hbox = Gtk.HBox(homogeneous=False, spacing=0);
+            hbox.pack_start(img, False, False, 0);
+            hbox.pack_start(lbl, True, True, 0);
+            rm.add(hbox)
+            '''
+            menu.add(rm)
+
+            mopen = Gtk.ImageMenuItem(label=_t("MENU_OPEN"))
+            mopen.set_image(Gtk.Image(stock=Gtk.STOCK_DIRECTORY))
+            mopen.connect("activate",self.on_open_clicked)
+            menu.add(mopen)    
+            reload = Gtk.ImageMenuItem(label= _t("MENU_RELOAD"))
+            reload.set_image(Gtk.Image(stock=Gtk.STOCK_GO_DOWN))
+            reload.connect("activate",self.on_reload_clicked)
+            menu.add(reload) 
         
         rmall = Gtk.ImageMenuItem(label=_t("MENU_DEL_ALL"))
         rmall.set_image(Gtk.Image(stock=Gtk.STOCK_DELETE))
         rmall.connect("activate",self.on_deleteAll_clicked)
         menu.add(rmall)
         menu.show_all()
+        menu.set_accel_group(None)
         menu.popup(None, None, None, None, event.button, event.time)
 
-        return False  
+        return True  
 
     
     
@@ -349,19 +390,25 @@ class YtWindow(Gtk.Window):
         val = event.get_keyval()[1]
         scan = event.get_scancode()
         if scan == 119 and val == 65535:
-            (model, item) = self.selection.get_selected()
-            if item is not None:
-                model.remove(item)
+            (model, paths) = self.selection.get_selected_rows()
+            if paths is not None:
+                for item in reversed(paths):
+                    aiter = model.get_iter(item)
+                    model.remove(aiter)
                 return True
-        return False
+        return True
 
     def on_delete_clicked(self,widget):
-        (model, item) = self.selection.get_selected()
-        if item is not None:
-            model.remove(item)
+        (model, paths) = self.selection.get_selected_rows()
+        if len(paths)>0:
+            for item in reversed(paths):
+                aiter = model.get_iter(item)
+                model.remove(aiter)
             
     def on_open_clicked(self,widget):
-        (model, item) = self.selection.get_selected()
+        (model, paths) = self.selection.get_selected_rows()
+        #TODO selection - WTF? 
+        item = paths[0]
         print(model[item][3])
         dnwType = model[item][3]
         if dnwType == YtModel.MODE_VIDEO:
@@ -370,20 +417,46 @@ class YtWindow(Gtk.Window):
             target=self.model.getMusicPath()
         YtModel.openFolder(target)
     
+    #force download - remove file for yt...
     def on_reload_clicked(self,widget):
-        (model, item) = self.selection.get_selected()
-        if item is not None:
-            self._fetchVideo(item)
+        self.model.getDownloadType()
+        (model, paths) = self.selection.get_selected_rows()
+        if paths is not None:
+            rows=[]
+            for item in paths:
+                aiter = model.get_iter(item)
+                fn = model[aiter][1]
+                dnwType = model[aiter][3]
+                print("Searching file:",fn)
+                if dnwType == YtModel.MODE_VIDEO:
+                    target=self.model.getVideoPath()
+                else:
+                    target=self.model.getMusicPath()
+                for root,dirs,files in os.walk(target):
+                    for name in files:
+                        print("Walk:",name)
+                        if fn in name:
+                            YtModel.removeFile(root,name)
+                            print("removed:",root,name)
+                            break
+                rows.append(item)
+            self._fetchVideo(rows)
+        
     
+    def on_download_clicked(self,widget):
+        if len(self.fileStore)>0:
+            self._fetchVideo(None)
     
     def on_deleteAll_clicked(self,widget):
         self.fileStore.clear()
     
-    
+    '''
     def updateDownloadButton(self):
-        (model, item) = self.selection.get_selected()
-        self.buttonStart.set_sensitive(item is not None)
-    
+        model_paths = self.selection.get_selected_rows()
+        hasSelection = len(model_paths[1])>0
+        self.buttonStart.set_sensitive( hasSelection)
+    '''
+        
     def _showError(self,text):
         image = Gtk.Image()
         image.set_from_icon_name(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
@@ -391,7 +464,7 @@ class YtWindow(Gtk.Window):
         
         dialog = Gtk.MessageDialog(parent=self, flags=0, title=_t("DIALOG_ERROR_TITLE"),  message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,  text=_t("DIALOG_ERROR_HEADER"),image=image)
-        dialog.format_secondary_markup(text)
+        dialog.format_secondary_text(text)
         dialog.run()
         dialog.destroy()   
         return False   
@@ -423,19 +496,26 @@ class YtWindow(Gtk.Window):
         item = self.fileStore.get_iter_first ()
         urls =[]
         while ( item != None ):
-            path = self.fileStore.get_value (item, 0)
+            url = self.fileStore.get_value (item, 0)
             title = self.fileStore.get_value (item, 1)
             mode = self.fileStore.get_value (item, 2)
-            type = self.fileStore.get_value (item, 3)
-            urls.append([path,title,str(mode),str(type)])
+            recType = self.fileStore.get_value (item, 3)
+            urls.append([url,title,str(mode),str(recType)])
             item = self.fileStore.iter_next(item)
         self.model.setURLList(urls)
         self.showStatus(_t("LIST_SAVED"))
 
     def on_tool_comboChanged(self,widget):
-        self.model.setDownloadTypeIndex(widget.get_active())
         #0==Video, 1== Audio
-    
+        self.model.setDownloadTypeIndex(widget.get_active())
+        '''
+        #don't update the list - use settings for the next drags
+        nextIter = self.fileStore.get_iter_first ()
+        while ( nextIter != None ):
+            self.fileStore.set_value(nextIter, 3, self.model.getDownloadType())
+            nextIter = self.fileStore.iter_next(nextIter)
+        '''
+        
     def on_tool_settings(self,widget):
         dialog = SettingsDialog(self)
         response = dialog.run()
@@ -561,11 +641,10 @@ class SettingsDialog(Gtk.Dialog):
             self.aentry.set_text(thePath)
         dialog.destroy() 
 
-    def _on_button_toggled(self,widget,id):
+    def _on_button_toggled(self,widget,idx):
         if widget.get_active():
-            indx = int(id)
-            str = self.parent.model.FORMATS[indx]
-            self.format=str
+            indx = int(idx)
+            self.format = self.parent.model.FORMATS[indx]
             
 
     def getVideoPath(self):
@@ -621,26 +700,29 @@ class WorkerThread(threading.Thread):
     def interrupt(self):
         self.processor.interrupt()
 
+#TODO model: we should not work on list stores!
 class YTDownloader():
-    def __init__(self,ytWin,oneIter):
+    def __init__(self,ytWin,treeRows):
         self.parent=ytWin
         self.current=None
         self.proc = None
-        self.oneIter = oneIter
+        self.treeRows=treeRows
+        
     
     def interrupt(self):
         if self.proc is not None:
             self.proc.stop()
             self.proc= None
-    #TODO THOSE ENTIRES WITH 100% SHOULD NOT BE DOWNLOADED AGAIN!!!    
+        
     def run(self):
         fs=self.parent.fileStore
-        singleShot=True
-        if self.oneIter is None:
+        if self.treeRows is None:
             aiter = fs.get_iter_first ()
-            singleShot=False
+            currIndex=-1
         else:
-            aiter = self.oneIter
+            aiter = fs.get_iter(self.treeRows[0])
+            currIndex=0
+            
         mode = self.parent.model.getDownloadType()
         quality = self.parent.model.getFormat()
         if mode==YtModel.MODE_AUDIO:
@@ -651,18 +733,22 @@ class YTDownloader():
         self.proc = Downloader(self)
         while ( aiter != None and self.proc is not None):
             self.current=aiter
-            print("single shot %s url:%s or: %.3f"%(singleShot,fs.get_value(aiter,0),fs.get_value(aiter,2)))
-            if singleShot or fs.get_value(aiter,2)< 99.99:
+            print("force: %s url:%s or: %.3f"%(currIndex,fs.get_value(aiter,0),fs.get_value(aiter,2)))
+            if currIndex>=0 or fs.get_value(aiter,2)< 99.99:
                 
                 self.onProgress(0.0, "0.0KiB")
                 url = fs.get_value (aiter, 0)
                 res = self.proc.download(url, mode,quality, targetDir)
                 if res.hasError():
                     return res.error
-            if not singleShot:
+            if currIndex==-1:
                 aiter = fs.iter_next(aiter)
             else:
-                aiter=None
+                currIndex+=1
+                if len(self.treeRows)>currIndex:
+                    aiter=fs.get_iter(self.treeRows[currIndex])
+                else:
+                    aiter=None
         return None
     
     def onProgress(self,progress,speed):
@@ -683,7 +769,7 @@ class YTDownloader():
 
     def _updateTitle(self,title):
         if title is not None:        
-            GLib.idle_add(self.parent.injectTitle,self.current,title)
+            GLib.idle_add(self.parent.updateTitle,self.current,title)
             self.__clearEvents()
                           
     def processResult(self,res):
@@ -697,24 +783,39 @@ class YTDownloader():
             Gtk.main_iteration()
 
 class YTInfo():
-    def __init__(self,ytWin,aiter,url):
+    def __init__(self,ytWin,url):
         self.target=url
         self.parent=ytWin
-        self.aiter = aiter
          
     def run(self):
-        res = YtModel.getInfo(self.target)
-        return res
+        #push into #processResults
+        return YtModel.getListInfo(self.target)
      
     def processResult(self,res):
-        if res.hasError():
+        if res.hasError() and res.result is None:
             self._handleError(res.error)
         else:
-            title = res.result["title"]
-            self.parent.injectTitle(self.aiter,title)
+            #result from YtModel
+            isList = "list" in self.target
+            lines = res.result
+            titles=[]
+            for entry in lines:
+                data = []
+                if isList:
+                    data.append(entry["url"]) 
+                else:
+                    data.append(self.parent._shortUrl(self.target))
+                data.append(entry["title"]) 
+                titles.append(data)
+            self.parent.injectRecordList(titles)
+            #Todo: add error to status if it exist:
+            if res.hasError():
+                self.parent.showStatus(res.error)
+            self.parent._longOperationDone()
         return GLib.SOURCE_REMOVE
      
     def _handleError(self,result):
+        self.parent._longOperationDone()
         self.parent._showError(result)
      
     def interrupt(self):

@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Version 1.2.2
+Version 1.3.0
 
-![Download](build/YtDownloader1.2.2.tar)
+![Download](build/YtDownloader1.3.0.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -11,6 +11,8 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 
 ### Features
 Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the list. 
+
+Press the "Download" button to download the list or single URLs.
 
 In addition an URL may be entered manually using the "plus" icon
 
@@ -62,3 +64,4 @@ sudo pacman -Syu python-gobject ffmpeg youtube-dl
  * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
 
  * 2019-12 Doubleclick invokes play of default audio or video player, open folder via context menu  
+ * 2021-02 Support for youtube playlists - redesigned the model, multiple selection possible

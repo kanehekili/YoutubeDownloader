@@ -35,7 +35,7 @@ if "en" in lang[0]:
     TEXT_MAP["BUTTON_CANX"]="   Exit   "
     TEXT_MAP["MENU_DEL"]="Remove"
     TEXT_MAP["MENU_DEL_ALL"]="Remove all"
-    TEXT_MAP["MENU_RELOAD"]="Reload"
+    TEXT_MAP["MENU_RELOAD"]="Force Reload"
     TEXT_MAP["MENU_OPEN"]="Open Folder"
     TEXT_MAP["FOLDER_MUSIC"]="Music"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
@@ -78,14 +78,14 @@ if "en" in lang[0]:
     TEXT_MAP["ALREADY_THERE"]="File already downloaded"
     
 elif "de" in lang[0]:
-    TEXT_MAP["TITLE"]="You Tube Downloader"
+    TEXT_MAP["TITLE"]="Video Downloader"
     TEXT_MAP["LABEL_DROP_AREA"]="URLs auf die Liste ziehen"
     TEXT_MAP["BUTTON_OK"]="Download"
     TEXT_MAP["BTN_INTERRUPT"]="Stoppen "
     TEXT_MAP["BUTTON_CANX"]="   Schließen   "
     TEXT_MAP["MENU_DEL"]="Löschen"
     TEXT_MAP["MENU_DEL_ALL"]="Alle löschen"
-    TEXT_MAP["MENU_RELOAD"]="Download"
+    TEXT_MAP["MENU_RELOAD"]="Erneut Laden"
     TEXT_MAP["MENU_OPEN"]="Ordner öffnen"
     TEXT_MAP["FOLDER_MUSIC"]="Musik"
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
@@ -271,12 +271,12 @@ class Model():
                     
         
 def convertURL(rawData):
-    data = rawData.split('&')
-    if len(data)< 1:
+    if len(rawData)< 1:
         return None
     
-    text = urllib.parse.unquote(data[0])
+    text = urllib.parse.unquote(rawData)
     aParseResult = urlparse(text)
+
     if "http" in aParseResult.scheme:
         return aParseResult
     return None
@@ -309,6 +309,7 @@ def cropError(errorText):
         return 
     #text= error.replace('"','*')
     text = errorText.split('. ') 
+    text = text[0].split(";")
     return text[0]
 
 def errorToText(error):
@@ -444,27 +445,33 @@ class Downloader():
 
     def setProcess(self,popen):
         self.proc=popen
-        
-def getInfo(url):
-    #read url and display info -DOES NOT RETURN if & is contained
+
+def getListInfo(url):
+    #read url and display list items
     #Not usable while downloading
     if YOUTUBE_DL is None:
         return ProcResult(None,_t("NO_DL"))
-    cmd=[YOUTUBE_DL,"-j",url]
+    
+    cmd=[YOUTUBE_DL,"-i","-j","--flat-playlist",url]
     try:
         result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
+        form=None
+        resArray=None
         if len(result[1])>0:
             #This is mostly an api problem
             form=cropError(result[1].decode("utf-8"))
-            return ProcResult(None,form)
+            #return ProcResult(None,form)
         if len(result[0])>0:
-            text= result[0].decode("utf-8")
-            result = json.loads(text) #is a map
-            return ProcResult(result,None)
+            entries= result[0].decode("utf-8").splitlines()
+            resArray=[]
+            for line in entries:
+                resArray.append(json.loads(line)) #is a map
+        return ProcResult(resArray,form)
     except Exception as error:
         form=errorToText(error)
         return ProcResult(None,form)
 
+    
 def openFile(path):
     subprocess.call(('xdg-open',path))
 #TODO make it async in thread
@@ -474,6 +481,11 @@ def play(root,name):
     cmd = ['xdg-open',target]
     process = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     #poll?
+
+def removeFile(root,name):
+    target = os.path.join(root,name)
+    print("Removing:",target)
+    os.remove(target)
 
 def openFolder(root):
     cmd = ['xdg-open',root]
