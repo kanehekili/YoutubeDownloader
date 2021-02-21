@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Version 1.3.0
+Version 1.3.1
 
-![Download](build/YtDownloader1.3.0.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.1.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -11,6 +11,8 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 
 ### Features
 Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the list. 
+
+Multi selection via "CRTL" 
 
 Press the "Download" button to download the list or single URLs.
 
@@ -21,7 +23,8 @@ The URLs in the list can be saved and restored
 When downloading, the "Download" button becomes an "Interrupt" button, which enables you to stop the download while underway.
 
 Doubleclick on an downloaded entry will start playing it with the default audio/video player
-Via context menu entries can be removed or folder opened
+
+Via context menu entries can be removed, folders opened or files downloaded again(forced)
 
 ### Settings
 Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
@@ -54,6 +57,14 @@ Currently Debian Stable has a working version, which can be downloaded with apt
 sudo pacman -Syu python-gobject ffmpeg youtube-dl
 ```
 
+### Prepare install on Fedora
+```
+sudo ./installYoutube-dl.sh
+sudo dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf -y install ffmpeg
+```
+
 ### How to install
 * Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.2.2.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
@@ -65,3 +76,4 @@ sudo pacman -Syu python-gobject ffmpeg youtube-dl
 
  * 2019-12 Doubleclick invokes play of default audio or video player, open folder via context menu  
  * 2021-02 Support for youtube playlists - redesigned the model, multiple selection possible
+ * 2021-02 Added update for youtube-dl (for debian derivates and fedora)

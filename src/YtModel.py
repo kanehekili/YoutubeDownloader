@@ -41,6 +41,7 @@ if "en" in lang[0]:
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
     TEXT_MAP["DIALOG_ERROR_TITLE"]="Error Message"
     TEXT_MAP["DIALOG_ERROR_HEADER"]="An error occurred )-:"
+    TEXT_MAP["DIALOG_INFO_TITLE"]="Information"
     TEXT_MAP["NOT_AN_URL_ERROR"]="Invalid URL"
     TEXT_MAP["FILE_SAVE"]="Name of TODO"
     TEXT_MAP["COL1"]="URL"
@@ -51,6 +52,7 @@ if "en" in lang[0]:
     TEXT_MAP["TIP_TOOL_ADD"]="Add URL manually"
     TEXT_MAP["TIP_TOOL_OPEN"]="Load saved URL List"
     TEXT_MAP["TIP_TOOL_SAVE"]="Save the URL List"
+    TEXT_MAP["TIP_TOOL_UPDATE"]="Update to the lastest youtube-dl"
     TEXT_MAP["COMBO_VIDEO"]="Video+Audio"
     TEXT_MAP["COMBO_AUDIO"]="Audio only"
     TEXT_MAP["TIP_TOOL_COMBO"]="Dowload settings"
@@ -64,7 +66,7 @@ if "en" in lang[0]:
     TEXT_MAP["SETTINGS_DLG"]="Settings dialog"
     TEXT_MAP["URL_DLG"]="Add video URL"
     TEXT_MAP["ENTER_URL"]="Enter video URL"
-    TEXT_MAP["SETTINGS_LABEL"]="Settings"
+    #TEXT_MAP["SETTINGS_LABEL"]="Settings"
     TEXT_MAP["SET_AUDIO_LBL"]="Store audio at:"
     TEXT_MAP["SET_VIDEO_LBL"]="Store videos at:"
     TEXT_MAP["FOLDER_VIDEO_SAVE"]="Video Folder"
@@ -91,6 +93,7 @@ elif "de" in lang[0]:
     TEXT_MAP["FOLDER_VIDEO"]="Videos"
     TEXT_MAP["DIALOG_ERROR_TITLE"]="Fehler Hinweis"
     TEXT_MAP["DIALOG_ERROR_HEADER"]="Da ist ein Fehler passiert )-:"
+    TEXT_MAP["DIALOG_INFO_TITLE"]="Information"
     TEXT_MAP["NOT_AN_URL_ERROR"]="Ungültige URL"
     TEXT_MAP["FILE_SAVE"]="Wie soll die Datei heißen?"
     TEXT_MAP["COL1"]="Adresse"
@@ -101,6 +104,7 @@ elif "de" in lang[0]:
     TEXT_MAP["TIP_TOOL_ADD"]="Youtube URL eingeben"
     TEXT_MAP["TIP_TOOL_OPEN"]="URL Liste laden"
     TEXT_MAP["TIP_TOOL_SAVE"]="URL Liste speichern"
+    TEXT_MAP["TIP_TOOL_UPDATE"]="Update auf die neuste youtube-dl"
     TEXT_MAP["COMBO_VIDEO"]="Video+Audio"
     TEXT_MAP["COMBO_AUDIO"]="nur Audio"
     TEXT_MAP["TIP_TOOL_COMBO"]="Einstellung für Download"
@@ -116,7 +120,7 @@ elif "de" in lang[0]:
     TEXT_MAP["SET_VIDEO_LBL"]="Ordner für Videos"    
     TEXT_MAP["URL_DLG"]="Video Adresse"
     TEXT_MAP["ENTER_URL"]="Manuelle Eingabe der Video URL"
-    TEXT_MAP["SETTINGS_LABEL"]="Einstellungen"
+    #TEXT_MAP["SETTINGS_LABEL"]="Einstellungen"
     TEXT_MAP["FOLDER_VIDEO_SAVE"]="Video Ordner"
     TEXT_MAP["FOLDER_AUDIO_SAVE"]="Audio Ordner"
     TEXT_MAP["DL_SETTINGS_TITLE"]="Qualitätseinstellungen"
@@ -352,10 +356,10 @@ class Downloader():
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
     DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
     TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-\w']+)+")
-    MP4 = [YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
-    MKV = [YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
-    ANY = [YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s']
-    AUDIO = [YOUTUBE_DL,"-f","bestaudio","-o",'%(title)s.%(ext)s',"--extract-audio","--audio-quality","0","--audio-format","mp3"]
+    MP4 = ["python3",YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
+    MKV = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
+    ANY = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s']
+    AUDIO = ["python3",YOUTUBE_DL,"-f","bestaudio","-o",'%(title)s.%(ext)s',"--extract-audio","--audio-quality","0","--audio-format","mp3"]
     
     def __init__(self,receiver):
         self.client = receiver
@@ -452,7 +456,7 @@ def getListInfo(url):
     if YOUTUBE_DL is None:
         return ProcResult(None,_t("NO_DL"))
     
-    cmd=[YOUTUBE_DL,"-i","-j","--flat-playlist",url]
+    cmd=["python3",YOUTUBE_DL,"-i","-j","--flat-playlist",url]
     try:
         result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
         form=None
@@ -491,6 +495,20 @@ def openFolder(root):
     cmd = ['xdg-open',root]
     process = subprocess.call(cmd)
 
+def updateYt():
+    cmd=['pkexec','python3',YOUTUBE_DL,'--update'] #python3 needed on ubuntu (sucks)
+    result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
+    form=None
+    resArray=None
+    if len(result[1])>0:
+            #This is mostly an api problem
+            form=cropError(result[1].decode("utf-8"))
+    if len(result[0])>0:
+        entries= result[0].decode("utf-8").splitlines()
+        resArray=[]
+        for line in entries:
+            resArray.append(line) #simple text 
+    return ProcResult(resArray,form)
 
 def convert():
     TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-\w']+)+")

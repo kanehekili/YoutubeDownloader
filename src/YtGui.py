@@ -79,6 +79,10 @@ class YtWindow(Gtk.Window):
         settings=Gtk.ToolButton(stock_id=Gtk.STOCK_PROPERTIES)
         settings.set_tooltip_text(_t("TIP_TOOL_SETTINGS"))
         settings.connect("clicked",self.on_tool_settings)
+        update=Gtk.ToolButton(stock_id=Gtk.STOCK_REFRESH)
+        update.set_tooltip_text(_t("TIP_TOOL_UPDATE"))
+        update.connect("clicked",self.on_tool_update)
+        
         dd = Gtk.ComboBoxText()
         dd.append_text(_t("COMBO_VIDEO"))
         dd.append_text(_t("COMBO_AUDIO"))
@@ -93,9 +97,10 @@ class YtWindow(Gtk.Window):
         toolbar.insert(opentb, 1)
         toolbar.insert(savetb, 2)
         toolbar.insert(settings,3)
-        toolbar.insert(sep, 4)
+        toolbar.insert(update,4)
+        toolbar.insert(sep, 5)
         toolbar.child_set(sep, expand=True);
-        toolbar.insert(combo,5)
+        toolbar.insert(combo,6)
 
 
         vbox = Gtk.VBox(expand=False, spacing=2)
@@ -469,6 +474,18 @@ class YtWindow(Gtk.Window):
         dialog.destroy()   
         return False   
 
+    def _showMessage(self,text):
+        image = Gtk.Image()
+        image.set_from_icon_name(Gtk.STOCK_DIALOG_INFO, Gtk.IconSize.DIALOG)
+        image.show()
+        
+        dialog = Gtk.MessageDialog(parent=self, flags=0, title=_t("DIALOG_INFO_TITLE"),  message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,  text=None,image=image)
+        dialog.format_secondary_text(text)
+        dialog.run()
+        dialog.destroy()   
+        return False  
+
     def on_tool_add(self,widget):
         dialog = URLDialog(self)
         response = dialog.run()
@@ -528,6 +545,18 @@ class YtWindow(Gtk.Window):
             self.model.setFormat(f)
         dialog.destroy() 
 
+
+    def on_tool_update(self,widget):
+        self._longOperationStart()
+        res = YtModel.updateYt()
+        if res.hasError():
+            self._showError(res.error)
+            return
+        text='\n'.join(res.result)
+        self._showMessage(text)
+        self._longOperationDone()
+
+
 class SettingsDialog(Gtk.Dialog):
     def __init__(self, parent):
         Gtk.Dialog.__init__(self, title=_t("SETTINGS_DLG"), parent=parent, flags=0)
@@ -541,12 +570,12 @@ class SettingsDialog(Gtk.Dialog):
         self._initWidgets()
         
     def _initWidgets(self):
-        text = _t("SETTINGS_LABEL")
-        grpLabel= Gtk.Label()
-        grpLabel.set_markup("<b>%s</b>"%text)
-        grpLabel.set_justify(Gtk.Justification.FILL)
+        #text = _t("SETTINGS_LABEL")
+        #grpLabel= Gtk.Label()
+        #grpLabel.set_markup("<b>%s</b>"%text)
+        #grpLabel.set_justify(Gtk.Justification.FILL)
         headBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        headBox.pack_start(grpLabel, True, True,5)
+        #headBox.pack_start(grpLabel, True, True,5)
         gtkdummyBox = Gtk.VBox()
         videoBox = Gtk.HBox()
         audioBox = Gtk.HBox()
@@ -608,7 +637,7 @@ class SettingsDialog(Gtk.Dialog):
         versBox.pack_start(lbl,False,False,2)
         
         lbl=Gtk.Label()
-        lbl.set_markup('<span size="small">Copyright (c) 2019 Kanehekili</span>')
+        lbl.set_markup('<span size="small">Copyright (c) 2019-21 Kanehekili</span>')
         versBox.pack_start(lbl,False,False,2)
         
         box = self.get_content_area()
