@@ -360,6 +360,7 @@ class Downloader():
     MKV = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
     ANY = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s']
     AUDIO = ["python3",YOUTUBE_DL,"-f","bestaudio","-o",'%(title)s.%(ext)s',"--extract-audio","--audio-quality","0","--audio-format","mp3"]
+    SEARCH=['"ytsearch %s"']
     
     def __init__(self,receiver):
         self.client = receiver

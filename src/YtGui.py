@@ -109,7 +109,7 @@ class YtWindow(Gtk.Window):
     
     def _createList(self):
         #url,title,progress, downloadtype
-        self.fileStore = Gtk.ListStore(str,str,float,str)
+        self.fileStore = Gtk.ListStore(str,str,float,str,str)
         theList = Gtk.TreeView(model=self.fileStore)
         theList.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         theList.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
@@ -117,9 +117,9 @@ class YtWindow(Gtk.Window):
             if n < 2:
                 cell = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(name,cell,text=n);
-                #column.set_cell_data_func(cell, self._drawCellData, None)
-                column.set_resizable(False)
-                column.set_max_width(200)
+                column.set_resizable(False) #Since it does not work
+                if n==1: 
+                    column.set_max_width(300)
                 column.set_expand(True)
             elif n == 2:
                 cell = Gtk.CellRendererProgress()
@@ -128,14 +128,20 @@ class YtWindow(Gtk.Window):
                 column.set_alignment(0.5)
             else:
                 cell = Gtk.CellRendererText()
-                #cell.set_alignment(1)
                 cell.set_property('xalign',0.5)
                 cell.set_property('cell-background', 'lightblue')
                 cell.set_property('foreground', 'darkgreen')
                 column = Gtk.TreeViewColumn(name,cell,text=n);
                 column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+                column.set_max_width(40)
                 column.set_alignment(0.5)
             theList.append_column(column)
+            
+        #append an invisible column
+        cell = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("fullurl",cell,text=4)
+        column.set_visible(False)
+        theList.append_column(column)
         
         theList.set_tooltip_text(_t("TIP_LIST"))
         self.selection = theList.get_selection()
@@ -148,15 +154,10 @@ class YtWindow(Gtk.Window):
         swH.connect("drag-data-received", self.on_drag_data_received)
         return swH
     
-    #ain't used
-    def _drawCellData(self,column, cell, model, aiter, user_data=None):
-        cell.set_property("cell-background","yellow")
- 
     def define_url_targets(self):
         self.list.drag_dest_set(Gtk.DestDefaults.ALL, [], DRAG_ACTION)
         self.list.drag_dest_set_target_list(None)
         self.list.drag_dest_add_text_targets()
-        #?self.list.drag_dest_add_uri_targets() 
      
     def _createLowerButtonRow(self):
        
@@ -259,7 +260,6 @@ class YtWindow(Gtk.Window):
         self._showError(_t("NOT_AN_URL_ERROR"))
     
     def addURL(self,path):
-        #Shortcut for singel entries: wont work on lists....
         if self._checkForDuplicates(path):
             return
         self._longOperationStart()
@@ -278,27 +278,21 @@ class YtWindow(Gtk.Window):
         w.start()
  
     def _checkForDuplicates(self,path):
-        surl=self._shortUrl(path)
         for rowData in self.fileStore:
-            print("url:%s and dwn:%s"%(rowData[0],rowData[3]))
-            if rowData[0]==surl and rowData[3]== self.model.getDownloadType():
+            if rowData[4]==path and rowData[3]== self.model.getDownloadType():
                 return True
         return False
  
-    def _shortUrl(self,anUrl):
-        splice = anUrl.split('?v=')
-        if len(splice)>1:
-            return splice[1]
-        return anUrl
- 
+
     def injectRecordList(self,modelData):
-        rowData=["?","?",0.0,self.model.getDownloadType()]
+        rowData=["?","?",0.0,self.model.getDownloadType(),""]
         for entry in modelData:
-            newPath = entry[0]
+            newPath = entry[2]
             if not self._checkForDuplicates(newPath):
                 nextIter= self.fileStore.append(rowData)
-                self.fileStore.set_value(nextIter, 0, newPath)
-                self.fileStore.set_value(nextIter, 1, entry[1])
+                self.fileStore.set_value(nextIter, 0, entry[0]) #short url
+                self.fileStore.set_value(nextIter, 1, entry[1]) #title
+                self.fileStore.set_value(nextIter, 4, entry[2]) #long url
         return GLib.SOURCE_REMOVE
         
     
@@ -401,7 +395,7 @@ class YtWindow(Gtk.Window):
                     aiter = model.get_iter(item)
                     model.remove(aiter)
                 return True
-        return True
+        return False
 
     def on_delete_clicked(self,widget):
         (model, paths) = self.selection.get_selected_rows()
@@ -412,9 +406,7 @@ class YtWindow(Gtk.Window):
             
     def on_open_clicked(self,widget):
         (model, paths) = self.selection.get_selected_rows()
-        #TODO selection - WTF? 
         item = paths[0]
-        print(model[item][3])
         dnwType = model[item][3]
         if dnwType == YtModel.MODE_VIDEO:
             target=self.model.getVideoPath()
@@ -424,7 +416,6 @@ class YtWindow(Gtk.Window):
     
     #force download - remove file for yt...
     def on_reload_clicked(self,widget):
-        self.model.getDownloadType()
         (model, paths) = self.selection.get_selected_rows()
         if paths is not None:
             rows=[]
@@ -432,14 +423,14 @@ class YtWindow(Gtk.Window):
                 aiter = model.get_iter(item)
                 fn = model[aiter][1]
                 dnwType = model[aiter][3]
-                print("Searching file:",fn)
+                #print("Searching file:",fn)
                 if dnwType == YtModel.MODE_VIDEO:
                     target=self.model.getVideoPath()
                 else:
                     target=self.model.getMusicPath()
                 for root,dirs,files in os.walk(target):
                     for name in files:
-                        print("Walk:",name)
+                        #print("Walk:",name)
                         if fn in name:
                             YtModel.removeFile(root,name)
                             print("removed:",root,name)
@@ -505,7 +496,11 @@ class YtWindow(Gtk.Window):
     def on_tool_load(self,widget):
         urls = self.model.getURLList()
         for item in urls:
-            rowData=[item[0],item[1],float(item[2]),item[3]]
+            if len(item)==4:
+                fullUrl=""
+            else:
+                fullUrl=item[4]
+            rowData=[item[0],item[1],float(item[2]),item[3],fullUrl]
             self.fileStore.append(rowData)
         self.showStatus(_t("LIST_LOADED"))
 
@@ -513,11 +508,12 @@ class YtWindow(Gtk.Window):
         item = self.fileStore.get_iter_first ()
         urls =[]
         while ( item != None ):
-            url = self.fileStore.get_value (item, 0)
+            viewid = self.fileStore.get_value (item, 0)
             title = self.fileStore.get_value (item, 1)
             mode = self.fileStore.get_value (item, 2)
             recType = self.fileStore.get_value (item, 3)
-            urls.append([url,title,str(mode),str(recType)])
+            url = self.fileStore.get_value (item, 4)
+            urls.append([viewid,title,str(mode),str(recType),url])
             item = self.fileStore.iter_next(item)
         self.model.setURLList(urls)
         self.showStatus(_t("LIST_SAVED"))
@@ -525,13 +521,13 @@ class YtWindow(Gtk.Window):
     def on_tool_comboChanged(self,widget):
         #0==Video, 1== Audio
         self.model.setDownloadTypeIndex(widget.get_active())
-        '''
-        #don't update the list - use settings for the next drags
+        
+        #update the list - is more intuitive
         nextIter = self.fileStore.get_iter_first ()
         while ( nextIter != None ):
             self.fileStore.set_value(nextIter, 3, self.model.getDownloadType())
             nextIter = self.fileStore.iter_next(nextIter)
-        '''
+        
         
     def on_tool_settings(self,widget):
         dialog = SettingsDialog(self)
@@ -751,22 +747,17 @@ class YTDownloader():
         else:
             aiter = fs.get_iter(self.treeRows[0])
             currIndex=0
-            
-        mode = self.parent.model.getDownloadType()
-        quality = self.parent.model.getFormat()
-        if mode==YtModel.MODE_AUDIO:
-            targetDir = self.parent.model.getMusicPath()
-        else:
-            targetDir = self.parent.model.getVideoPath()
         
+        quality = self.parent.model.getFormat()    
+
         self.proc = Downloader(self)
         while ( aiter != None and self.proc is not None):
             self.current=aiter
-            print("force: %s url:%s or: %.3f"%(currIndex,fs.get_value(aiter,0),fs.get_value(aiter,2)))
+            mode,targetDir = self._downloadType(fs,aiter)
             if currIndex>=0 or fs.get_value(aiter,2)< 99.99:
                 
                 self.onProgress(0.0, "0.0KiB")
-                url = fs.get_value (aiter, 0)
+                url = fs.get_value (aiter, 4)
                 res = self.proc.download(url, mode,quality, targetDir)
                 if res.hasError():
                     return res.error
@@ -780,6 +771,14 @@ class YTDownloader():
                     aiter=None
         return None
     
+    def _downloadType(self,fs,aiter):
+        mode = fs.get_value(aiter,3)
+        if mode==YtModel.MODE_AUDIO:
+            targetDir = self.parent.model.getMusicPath()
+        else:
+            targetDir = self.parent.model.getVideoPath()
+        return (mode,targetDir) 
+                
     def onProgress(self,progress,speed):
         if self.current is not None:
             self._broadcastData(progress, speed) 
@@ -825,19 +824,27 @@ class YTInfo():
             self._handleError(res.error)
         else:
             #result from YtModel
-            isList = "list" in self.target
+            splitUrl=self.target.split("playlist") #url and list/id
+            isList = len(splitUrl)>1 
             lines = res.result
             titles=[]
             for entry in lines:
                 data = []
-                if isList:
-                    data.append(entry["url"]) 
+                data.append(entry["id"])
+                data.append(entry["title"])
+                if isList: #makes it only possible for youtube lists...
+                    data.append(splitUrl[0]+"watch?v="+entry["id"]) 
                 else:
-                    data.append(self.parent._shortUrl(self.target))
-                data.append(entry["title"]) 
+                    if "url" in entry:
+                        fullUrl=entry["url"]
+                    elif "webpage_url" in entry:
+                        fullUrl=entry["webpage_url"]
+                    else:
+                        fullUrl=self.target
+                    data.append(fullUrl)
+
                 titles.append(data)
             self.parent.injectRecordList(titles)
-            #Todo: add error to status if it exist:
             if res.hasError():
                 self.parent.showStatus(res.error)
             self.parent._longOperationDone()

@@ -1,30 +1,30 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Version 1.3.1
+Version 1.3.2
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.1.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.2.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
 ![Screenshot](./Yt.png)
 
 ### Features
-Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the list. 
+* Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the list. 
 
-Multi selection via "CRTL" 
+* Press the "Download" button to download the list or single URLs.
 
-Press the "Download" button to download the list or single URLs.
+* In addition an URL may be entered manually using the "plus" icon
 
-In addition an URL may be entered manually using the "plus" icon
+* The URLs in the list can be saved and restored
 
-The URLs in the list can be saved and restored
+* When downloading, the "Download" button becomes an "Interrupt" button, which enables you to stop the download while underway.
 
-When downloading, the "Download" button becomes an "Interrupt" button, which enables you to stop the download while underway.
+* Doubleclick on an downloaded entry will start playing it with the default audio/video player
 
-Doubleclick on an downloaded entry will start playing it with the default audio/video player
+* Via context menu entries can be removed, folders opened or files downloaded again(forced)
 
-Via context menu entries can be removed, folders opened or files downloaded again(forced)
+* Multi selection via "CRTL+A" 
 
 ### Settings
 Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
@@ -66,7 +66,7 @@ sudo dnf -y install ffmpeg
 ```
 
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](build/YtDownloader1.2.2.tar)
+* Download the YtDownloader*.tar contained in the "build" folder ![here](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.2.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
 * In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
@@ -77,3 +77,4 @@ sudo dnf -y install ffmpeg
  * 2019-12 Doubleclick invokes play of default audio or video player, open folder via context menu  
  * 2021-02 Support for youtube playlists - redesigned the model, multiple selection possible
  * 2021-02 Added update for youtube-dl (for debian derivates and fedora)
+ * 2021-02 Fixed youtube playlist special url downloads
