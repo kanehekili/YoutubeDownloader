@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube-dl,vimeo and others
 
-Version 1.3.2
+Version 1.3.3
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.2.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.3.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -11,6 +11,8 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 
 ### Features
 * Downloads either video(with audio) or audio only from youtube, vimeo and other platforms by simply dragging the url from the browser to the list. 
+
+* Videos from different sites (such as Youtube, Vimeo,Rumble and (German Broadcasting)Mediatheks can be downloaded.
 
 * Press the "Download" button to download the list or single URLs.
 
@@ -66,15 +68,15 @@ sudo dnf -y install ffmpeg
 ```
 
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.2.tar)
+* Download the YtDownloader*.tar contained in the "build" folder ![here](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.3.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
 * In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
 
 ### Changes
  * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
-
  * 2019-12 Doubleclick invokes play of default audio or video player, open folder via context menu  
  * 2021-02 Support for youtube playlists - redesigned the model, multiple selection possible
- * 2021-02 Added update for youtube-dl (for debian derivates and fedora)
+ * 2021-02 Added update for youtube-dl (if installed manually by the "installYoutube-dl" script)
  * 2021-02 Fixed youtube playlist special url downloads
+ * 2021-03 Support for various media platforms

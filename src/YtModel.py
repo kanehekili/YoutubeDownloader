@@ -187,6 +187,10 @@ class Model():
         self.config = ConfigAccessor("YtDownloader.ini")
         self._assureConfig()
     
+    def isManualYT(self):
+        return os.path.isfile("/usr/local/bin/youtube-dl")
+        
+    
     def _assureConfig(self):
 
         self.config.read()
@@ -355,11 +359,11 @@ class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
     REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
     DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
-    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-\w']+)+")
-    MP4 = ["python3",YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
-    MKV = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
-    ANY = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio","-o",'%(title)s.%(ext)s']
-    AUDIO = ["python3",YOUTUBE_DL,"-f","bestaudio","-o",'%(title)s.%(ext)s',"--extract-audio","--audio-quality","0","--audio-format","mp3"]
+    TITLE = re.compile("\[download\] Destination: ([^.]+)+")
+    MP4 = ["python3",YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
+    MKV = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio/best","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]
+    ANY = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio/best","-o",'%(title)s.%(ext)s']
+    AUDIO = ["python3",YOUTUBE_DL,"-f","bestaudio/best","-o",'%(title)s.%(ext)s',"--extract-audio","--audio-quality","0","--audio-format","mp3"]
     SEARCH=['"ytsearch %s"']
     
     def __init__(self,receiver):
@@ -512,20 +516,46 @@ def updateYt():
     return ProcResult(resArray,form)
 
 def convert():
-    TITLE = re.compile("\[download\][ Destination:]* ([A-z 0-9-\w']+)+")
-    
-    txt=[0 for x in range(5)]
+    TITLE = re.compile("\[download\][ Destination:]+ ([A-z 0-9-\w']+)+")
+    TITLE = re.compile("\[download\] Destination: ([A-z 0-9-\w']+[^.]+)+")
+    TITLE = re.compile("\[download\] Destination: ([^.]+)+")
+   
+    txt=[0 for x in range(24)]
     txt[0]="[download] De 23$%&/&=)?hfggfdgsdf sdfsdwe3454767565645.mp4"
     txt[1]="[download] Destination: Pip _ A Short Animated Film-07d2dXHYb94.f137.mp4"
     txt[2]= "[download] Pip _ A Short Animated Film-07d2dXHYb94.mp4 has already been downloaded and merged"
     txt[3]= "[download] Destination: Poko 110 - Bowling For Minus-QwMfiVl4Wm0.f244.webm"
     txt[4]="[download] Destination: CGI 3D Animated Short - 'Take Me Home' - by Nair Archawattana _ TheCGBros.f137.mp4"
+    
+    txt[5]="[ARDBetaMediathek] magnus-trolljaeger/folge-1-ein-fall-fuer-idioten-s01-e01/ndr-fernsehen: Downloading JSON metadata"
+    txt[6]="[ARDBetaMediathek] 86159550: Downloading m3u8 information"
+    txt[7]="[hlsnative] Downloading m3u8 manifest"
+    txt[8]="[hlsnative] Total fragments: 192"
+    txt[9]="[download] Destination: Folge 1 - Ein Fall für Idioten (S01_E01).mp4"
+    txt[10]="[download]  49.5% of ~310.68MiB at  207.71B/s ETA 01:10"
+    txt[11]="[download]  49.5% of ~310.68MiB at  267.05B/s ETA 01:10"
+    txt[12]="[download]  49.5% of ~310.68MiB at  385.74B/s ETA 01:10"
+    txt[13]="[download]  49.5% of ~310.68MiB at  623.11B/s ETA 01:10"
+    txt[14]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 2 of 10)..."
+    txt[15]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 3 of 10)..."
+    txt[16]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 4 of 10)..."
+    txt[17]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 5 of 10)..."
+    txt[18]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 6 of 10)..."
+    txt[19]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 7 of 10)..."
+    txt[20]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 8 of 10)..."
+    txt[21]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 9 of 10)..."
+    txt[22]="[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 10 of 10)..."
+    txt[23]="[download] Skipping fragment 192..."
+    
+    
     for index in range(len(txt)):
         line= txt[index]
-        if TITLE.match(line):
+        if TITLE.search(line):
             s=TITLE.search(line)
             found = s.groups()
-            print(s.group(0))
+            #ok=TITLE.match(line)
+            #print("OK:",ok.group(0)," #1:",ok.group(1)," #2:",ok.group(1))
+            print("Raw=",s.group(0)," TITLE:",s.group(1))
             for item in found:
                 print("1:%s"%(item))
         else:

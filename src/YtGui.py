@@ -79,9 +79,13 @@ class YtWindow(Gtk.Window):
         settings=Gtk.ToolButton(stock_id=Gtk.STOCK_PROPERTIES)
         settings.set_tooltip_text(_t("TIP_TOOL_SETTINGS"))
         settings.connect("clicked",self.on_tool_settings)
-        update=Gtk.ToolButton(stock_id=Gtk.STOCK_REFRESH)
-        update.set_tooltip_text(_t("TIP_TOOL_UPDATE"))
-        update.connect("clicked",self.on_tool_update)
+        update=None
+        if self.model.isManualYT():
+            update=Gtk.ToolButton(stock_id=Gtk.STOCK_REFRESH)
+            update.set_tooltip_text(_t("TIP_TOOL_UPDATE"))
+            update.connect("clicked",self.on_tool_update)
+        
+            
         
         dd = Gtk.ComboBoxText()
         dd.append_text(_t("COMBO_VIDEO"))
@@ -97,7 +101,8 @@ class YtWindow(Gtk.Window):
         toolbar.insert(opentb, 1)
         toolbar.insert(savetb, 2)
         toolbar.insert(settings,3)
-        toolbar.insert(update,4)
+        if update is not None:
+            toolbar.insert(update,4)
         toolbar.insert(sep, 5)
         toolbar.child_set(sep, expand=True);
         toolbar.insert(combo,6)
@@ -783,10 +788,10 @@ class YTDownloader():
         if self.current is not None:
             self._broadcastData(progress, speed) 
 
-    def onProgressDone(self,fulltext,fileName):
+    def onProgressDone(self,fulltext,filename):
         if self.current is not None:
             self._broadcastData(100.0, fulltext)
-            self._updateTitle(fileName)
+            self._updateTitle(filename)#that might differ from peek
 
     def _broadcastData(self,progress,info):
         if progress is not None:
@@ -841,7 +846,7 @@ class YTInfo():
                         fullUrl=entry["webpage_url"]
                     else:
                         fullUrl=self.target
-                    data.append(fullUrl)
+                    data.append(self.target)
 
                 titles.append(data)
             self.parent.injectRecordList(titles)
