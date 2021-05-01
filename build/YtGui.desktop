@@ -8,5 +8,5 @@ Name=Youtube Downloader
 Comment=Downloads video and audio
 Icon=/usr/local/bin/YtDownloader/youtube512.png
 NoDisplay=false
-StartupWMClass=YtGui.py 
+StartupWMClass=YtGui.py
 Categories=GTK;AudioVideo

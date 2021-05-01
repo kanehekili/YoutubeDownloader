@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ] ; then
 fi
 
 #copy desktop to /usr/share applications
-sudo cp Yt.desktop /usr/share/applications;
+sudo cp YtGui.desktop /usr/share/applications;
 sudo mkdir -p /usr/local/bin/YtDownloader;
 sudo cp * /usr/local/bin/YtDownloader/;
 sudo chmod +x /usr/local/bin/YtDownloader/YtGui.py;
