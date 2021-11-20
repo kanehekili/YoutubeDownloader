@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name="package YT" default="pkg">
+    <property file="build.properties"/>
+	<target name="pkg">
+		<property name="aurTarget" value="AUR"/>
+		<mkdir dir="${aurTarget}"/>
+		<property name="aurSource" value="AUR-template"/>
+		
+		<!-- PKBUILD -->
+		<checksum file="YtDownloader${version}.tar" property="aurMD5"/>
+		<copy todir="${aurTarget}">
+			<fileset file="${aurSource}/*"/>
+			<filterset>
+				<filter token="md5sum" value="${aurMD5}"/>
+				<filter token="xxx" value="${version}"/>
+			</filterset>
+		</copy>		
+		<exec dir="${aurTarget}" executable="makepkg" output="${aurTarget}/.SRCINFO" os="Linux">
+		 <arg value="--printsrcinfo"/> 
+		</exec>
+		
+	</target>
+</project>	

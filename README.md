@@ -3,7 +3,7 @@ GTK3 UI for youtube-dl,vimeo and others
 
 Version 1.3.3
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.3.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.3.3/YtDownloader1.3.3.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -27,6 +27,8 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 * Via context menu entries can be removed, folders opened or files downloaded again(forced)
 
 * Multi selection via "CRTL+A" 
+
+* Can also be started via terminal with "YtGui"
 
 ### Settings
 Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
@@ -68,10 +70,16 @@ sudo dnf -y install ffmpeg
 ```
 
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](https://github.com/kanehekili/YoutubeDownloader/raw/master/build/YtDownloader1.3.3.tar)
+* Download the YtDownloader*.tar contained in the "build" folder ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.3.3/YtDownloader1.3.3.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
-* Install just copies a desktop file and some python scripts to /usr/local/sbin/YtDownloader
+* Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
+
+### Install on Arch or Manjaro
+Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
+* Download PKGBUILD from https://aur.archlinux.org/packages/ytdownloader/
+* Open terminal and execute "makepkg -s"
+* sudo pacman -U ytdownloader.... 
 
 ### Changes
  * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
@@ -80,3 +88,4 @@ sudo dnf -y install ffmpeg
  * 2021-02 Added update for youtube-dl (if installed manually by the "installYoutube-dl" script)
  * 2021-02 Fixed youtube playlist special url downloads
  * 2021-03 Support for various media platforms
+ * 2021-11 Prepare for AUR PKGBUILD

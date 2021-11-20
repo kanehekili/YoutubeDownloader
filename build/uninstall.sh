@@ -6,6 +6,9 @@ if [ "$EUID" -ne 0 ] ; then
 fi
 
 sudo rm /usr/share/applications/YtGui.desktop
-sudo rm -rf /usr/local/bin/YtDownloader
-rm $HOME/.config/YtDownloader.ini
+sudo rm /usr/bin/YtGui
+sudo rm -rf /opt/ytdownloader
+if test -f "$USER_HOME/.config/YtDownloader.ini"; then
+	rm $HOME/.config/YtDownloader.ini
+fi
 echo "App removed."

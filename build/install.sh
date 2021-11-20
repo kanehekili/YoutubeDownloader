@@ -5,11 +5,13 @@ if [ "$EUID" -ne 0 ] ; then
   exit 1
 fi
 
-#copy desktop to /usr/share applications
-sudo cp YtGui.desktop /usr/share/applications;
-sudo mkdir -p /usr/local/bin/YtDownloader;
-sudo cp * /usr/local/bin/YtDownloader/;
-sudo chmod +x /usr/local/bin/YtDownloader/YtGui.py;
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+sudo cp $DIR/YtGui.desktop /usr/share/applications;
+sudo mkdir -p /opt/ytdownloader;
+sudo cp -r $DIR/* /opt/ytdownloader;
+sudo chmod +x /opt/ytdownloader/YtGui.py
+sudo ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
+
 USER_HOME=$(eval echo ~${SUDO_USER})
 if test -f "$USER_HOME/.config/YtDownloader.ini"; then
     rm $USER_HOME/.config/YtDownloader.ini;

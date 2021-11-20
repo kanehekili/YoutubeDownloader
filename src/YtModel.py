@@ -501,7 +501,7 @@ def openFolder(root):
     process = subprocess.call(cmd)
 
 def updateYt():
-    cmd=['pkexec','python3',YOUTUBE_DL,'--update'] #python3 needed on ubuntu (sucks)
+    cmd=['pkexec',YOUTUBE_DL,'--update'] 
     result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
     form=None
     resArray=None

@@ -4,11 +4,15 @@
     	<property file="build.properties"/>
 		<property name="stage" value="stage"/>
 		<property name="rootDir" value="${stage}/YtDownloader"/>
+		<property name="aurTarget" value="AUR"/>
+		
 		<delete dir="${stage}"/>
+		<delete dir="${aurTarget}"/>
 		<mkdir dir="${stage}"/>
 		<mkdir dir="${rootDir}"/>
-
+        <mkdir dir="${aurTarget}"/>
 		<property name="source" value="../src"/>
+		<property name="aurSource" value="AUR-template"/>
 		
 		<copy todir="${rootDir}">
 			<fileset file="*.desktop">
@@ -45,5 +49,19 @@
 			<arg value="YtDownloader"/>
 		</exec>
 		<delete dir="${stage}"/>
+		
+		<!-- PKBUILD -->
+		<checksum file="YtDownloader${version}.tar" property="aurMD5"/>
+		<copy todir="${aurTarget}">
+			<fileset file="${aurSource}/*"/>
+			<filterset>
+				<filter token="md5sum" value="${aurMD5}"/>
+				<filter token="xxx" value="${version}"/>
+			</filterset>
+		</copy>		
+		<exec dir="${aurTarget}" executable="makepkg" output="${aurTarget}/.SRCINFO" os="Linux">
+		 <arg value="--printsrcinfo"/> 
+		</exec>
+		
 	</target>
 </project>	
