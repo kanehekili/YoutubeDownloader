@@ -6,11 +6,18 @@ if [ "$EUID" -ne 0 ] ; then
 fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-sudo cp $DIR/YtGui.desktop /usr/share/applications;
-sudo mkdir -p /opt/ytdownloader;
-sudo cp -r $DIR/* /opt/ytdownloader;
-sudo chmod +x /opt/ytdownloader/YtGui.py
-sudo ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
+cp $DIR/YtGui.desktop /usr/share/applications;
+mkdir -p /opt/ytdownloader;
+cp -r $DIR/* /opt/ytdownloader;
+chmod +x /opt/ytdownloader/YtGui.py
+ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
+
+if test -f "/usr/local/bin/yt-dlp"; then
+	echo "yt-dlp installed"
+else
+   curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+   chmod a+rx /usr/local/bin/youtube-dl
+fi
 
 USER_HOME=$(eval echo ~${SUDO_USER})
 if test -f "$USER_HOME/.config/YtDownloader.ini"; then
@@ -19,7 +26,6 @@ fi
 
 echo "####################################################"
 echo "#   Ensure you have installed:                     #"                     
-echo "#       *youtube-dl                                #"
 echo "#       *ffmpeg                                    #"
 echo "####################################################"
 echo "App installed."

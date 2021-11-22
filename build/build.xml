@@ -19,6 +19,8 @@
 			</fileset>
 			<fileset file="*install*.sh">
 			</fileset>
+			<fileset file="yt-dlp">
+			</fileset>
 		</copy>
 			
 		<chmod file="${rootDir}/install.sh" perm="ug+rwx"/>

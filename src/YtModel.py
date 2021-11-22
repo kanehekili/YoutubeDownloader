@@ -20,9 +20,10 @@ MODE_VIDEO="V";
 MODE_AUDIO="A";
 lang = locale.getdefaultlocale()
 
-YOUTUBE_DL="/usr/bin/youtube-dl"
-if not os.path.exists(YOUTUBE_DL):
-    YOUTUBE_DL="/usr/local/bin/youtube-dl"    
+#YOUTUBE_DL="/usr/bin/youtube-dl"
+YOUTUBE_DL="/usr/local/bin/yt-dlp"
+#if not os.path.exists(YOUTUBE_DL):
+#    YOUTUBE_DL="/usr/local/bin/youtube-dl"    
 if not os.path.exists(YOUTUBE_DL):
     YOUTUBE_DL=None
 
@@ -48,11 +49,11 @@ if "en" in lang[0]:
     TEXT_MAP["COL2"]="Title"
     TEXT_MAP["COL3"]="Status"
     TEXT_MAP["COL4"]="A/V"
-    TEXT_MAP["INSTALL_YT"]="Please install youtube-dl and ffmpeg"
+    TEXT_MAP["INSTALL_YT"]="Please install yt-dlp and ffmpeg"
     TEXT_MAP["TIP_TOOL_ADD"]="Add URL manually"
     TEXT_MAP["TIP_TOOL_OPEN"]="Load saved URL List"
     TEXT_MAP["TIP_TOOL_SAVE"]="Save the URL List"
-    TEXT_MAP["TIP_TOOL_UPDATE"]="Update to the lastest youtube-dl"
+    TEXT_MAP["TIP_TOOL_UPDATE"]="Update to the lastest yt-dlp"
     TEXT_MAP["COMBO_VIDEO"]="Video+Audio"
     TEXT_MAP["COMBO_AUDIO"]="Audio only"
     TEXT_MAP["TIP_TOOL_COMBO"]="Dowload settings"
@@ -75,7 +76,7 @@ if "en" in lang[0]:
     TEXT_MAP["SEL_MP4"]="Good quality with mp4"
     TEXT_MAP["SEL_MKV"]="Highest quality with mkv"
     TEXT_MAP["SEL_ANY"]="Highest quality auto container"
-    TEXT_MAP["NO_DL"]="Could not find youtube-dl. It should be either in \n /usr/bin or /usr/local/bin"
+    TEXT_MAP["NO_DL"]="Could not find yt-dlp. It should be either in \n /usr/bin or /usr/local/bin"
     TEXT_MAP["STATUS_INTERRUPT"]="Process interrupted"
     TEXT_MAP["ALREADY_THERE"]="File already downloaded"
     
@@ -100,11 +101,11 @@ elif "de" in lang[0]:
     TEXT_MAP["COL2"]="Titel"
     TEXT_MAP["COL3"]="Status"
     TEXT_MAP["COL4"]="A/V"
-    TEXT_MAP["INSTALL_YT"]="Bitte youtube-dl und ffmpeg installieren"
+    TEXT_MAP["INSTALL_YT"]="Bitte yt-dlp und ffmpeg installieren"
     TEXT_MAP["TIP_TOOL_ADD"]="Youtube URL eingeben"
     TEXT_MAP["TIP_TOOL_OPEN"]="URL Liste laden"
     TEXT_MAP["TIP_TOOL_SAVE"]="URL Liste speichern"
-    TEXT_MAP["TIP_TOOL_UPDATE"]="Update auf die neuste youtube-dl"
+    TEXT_MAP["TIP_TOOL_UPDATE"]="Update auf die neuste yt-dlp"
     TEXT_MAP["COMBO_VIDEO"]="Video+Audio"
     TEXT_MAP["COMBO_AUDIO"]="nur Audio"
     TEXT_MAP["TIP_TOOL_COMBO"]="Einstellung für Download"
@@ -127,7 +128,7 @@ elif "de" in lang[0]:
     TEXT_MAP["SEL_MP4"]="Gute Qualität im mp4 Format"
     TEXT_MAP["SEL_MKV"]="Sehr gute Qualität im mkv Format"
     TEXT_MAP["SEL_ANY"]="Sehr gute Qualität im beliebigen Format"
-    TEXT_MAP["NO_DL"]="youtube-dl nicht gefunden. Sollte entweder in\n /usr/bin oder /usr/local/bin sein"
+    TEXT_MAP["NO_DL"]="yt-dlp nicht gefunden. Sollte entweder in\n /usr/bin oder /usr/local/bin sein"
     TEXT_MAP["STATUS_INTERRUPT"]="Download abgebrochen"
     TEXT_MAP["ALREADY_THERE"]="Datei schon geladen"
     
@@ -188,7 +189,9 @@ class Model():
         self._assureConfig()
     
     def isManualYT(self):
-        return os.path.isfile("/usr/local/bin/youtube-dl")
+        #return os.path.isfile("/usr/local/bin/youtube-dl")
+        #currently always
+        return True
         
     
     def _assureConfig(self):
@@ -344,15 +347,15 @@ expects an object that can receive the progress data:
 onProgress(percent(float), size with units (str), speed with units (str) 
 
 best video & audio for mp4
-youtube-dl -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio --merge-output-format mp4 https://www.youtube.com/watch?v=Xj3gU3jACe8
+yt-dlp -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio --merge-output-format mp4 https://www.youtube.com/watch?v=Xj3gU3jACe8
 
 bestaudio:
-youtube-dl -f bestaudio --extract-audio --audio-quality 0 --audio-format mp3
+yt-dlp -f bestaudio --extract-audio --audio-quality 0 --audio-format mp3
 
 very best only (trick=mkv)
-youtube-dl -f bestvideo+bestaudio --merge-output-format mkv https://www.youtube.com/watch?v=Xj3gU3jACe8
+yt-dlp -f bestvideo+bestaudio --merge-output-format mkv https://www.youtube.com/watch?v=Xj3gU3jACe8
 or:
-youtube-dl -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
+yt-dlp -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
 >>leads to a webm file. needs complete transcoding for mp4....(VP9+Opus)
 '''
 class Downloader():
@@ -501,7 +504,8 @@ def openFolder(root):
     process = subprocess.call(cmd)
 
 def updateYt():
-    cmd=['pkexec',YOUTUBE_DL,'--update'] 
+    #cmd=['pkexec',YOUTUBE_DL,'--update']
+    cmd=['pkexec',YOUTUBE_DL,"-U"] 
     result = Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
     form=None
     resArray=None

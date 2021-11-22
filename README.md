@@ -1,9 +1,9 @@
 # YoutubeDownloader
-GTK3 UI for youtube-dl,vimeo and others
+GTK3 UI for youtube,vimeo and others
 
 Version 1.3.3
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.3.3/YtDownloader1.3.3.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -43,34 +43,26 @@ There are 3 options for video quality:
 ### Prerequisites
   * python3
   * python3-gi (debian) or python-gobject (Arch)
-  * youtube-dl
   * ffmpeg
 
 ### Prepare install on Debian, Linux Mint (19.X) or Ubuntu 18.04 (bionic) 
 ```
 sudo apt install python3-gi ffmpeg
 ```
-Unfortunately Ubuntu and derivates offer a very old version of youtube-dl which does not work. Use included bashfile for installing the latest youtube-dl direct from their homepage:
-
-```
-sudo ./installYoutube-dl.sh
-```
-Currently Debian Stable has a working version, which can be downloaded with apt
 ### Prepare install on Arch or Manjaro
 ```
-sudo pacman -Syu python-gobject ffmpeg youtube-dl
+sudo pacman -Syu python-gobject ffmpeg
 ```
 
 ### Prepare install on Fedora
 ```
-sudo ./installYoutube-dl.sh
 sudo dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
 sudo dnf -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 sudo dnf -y install ffmpeg
 ```
 
 ### How to install
-* Download the YtDownloader*.tar contained in the "build" folder ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.3.3/YtDownloader1.3.3.tar)
+* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
@@ -89,3 +81,5 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
  * 2021-02 Fixed youtube playlist special url downloads
  * 2021-03 Support for various media platforms
  * 2021-11 Prepare for AUR PKGBUILD
+ * 2021-11 Moved backend from youtube-dl to yt-dlp
+ 
