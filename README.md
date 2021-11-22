@@ -1,7 +1,7 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.3.3
+Version 1.4.0
 
 ![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
 
