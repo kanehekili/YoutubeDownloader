@@ -15,7 +15,7 @@ ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
 if test -f "/usr/local/bin/yt-dlp"; then
 	echo "yt-dlp installed"
 else
-    if ! command -v curl &> /dev/null;yt then
+    if ! command -v curl &> /dev/null; then
       wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
     else  
       curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
