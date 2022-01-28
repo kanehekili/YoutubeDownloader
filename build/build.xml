@@ -80,10 +80,9 @@
 		 <arg value="--printsrcinfo"/> 
 		</exec>
 
-	<tstamp>
-    	 <format property="time.stamp" pattern="EEE, d LLL yyyy HH:mm:ss"/>
-	</tstamp>
-
+		<tstamp>
+    	 	<format property="time.stamp" pattern="EEE, d LLL yyyy HH:mm:ss"/>
+		</tstamp>
 
 		<!-- DEBBUILD ubu1-->
 		<copy todir="${ubu1Target}">
@@ -94,8 +93,8 @@
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
 			</filterset>			
-			
 		</copy>
+		
 		<mkdir dir="${ubu1Target}/addons"/>
 		<mkdir dir="${ubu1Target}/debian"/>
 		<mkdir dir="${ubu1Target}/opt"/>
@@ -104,8 +103,12 @@
 			<filterset>
 			    <filter token="xxx" value="${version}"/>
 			</filterset>
-			<fileset file="${source}/*.png"/>
 		</copy>
+
+	   <copy todir="${ubu1Target}/opt">
+  		   <fileset file="${source}/*.png"/>
+		</copy>
+		
 		<copy todir="${ubu1Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
@@ -139,8 +142,11 @@
 			<filterset>
 			    <filter token="xxx" value="${version}"/>
 			</filterset>
-			<fileset file="${source}/*.png"/>
 		</copy>
+		<copy todir="${ubu2Target}/opt">
+  		   <fileset file="${source}/*.png"/>
+		</copy>
+		
 		<copy todir="${ubu2Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
