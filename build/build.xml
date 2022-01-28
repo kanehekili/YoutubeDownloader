@@ -13,9 +13,11 @@
 		
 		<delete dir="${stage}"/>
 		<delete dir="${aurTarget}"/>
+		<delete dir="${debTarget}"/>
 		<mkdir dir="${stage}"/>
 		<mkdir dir="${rootDir}"/>
         <mkdir dir="${aurTarget}"/>
+        <mkdir dir="${debTarget}"/>
 		<mkdir dir="${ubu1Target}"/>
 		<mkdir dir="${ubu2Target}"/>        
 		
@@ -63,7 +65,6 @@
 			<arg value="--directory=${stage}"/>
 			<arg value="YtDownloader"/>
 		</exec>
-		<delete dir="${stage}"/>
 		
 		<!-- PKBUILD -->
 		<checksum file="YtDownloader${version}.tar" property="aurMD5"/>
@@ -151,6 +152,7 @@
 			<arg value="--file=${debTarget}/${ubu2Build}.tar"/>
 			<arg value="--directory=${stage}"/>
 			<arg value="${ubu2Build}"/>
-		</exec>				
+		</exec>	
+		<delete dir="${stage}"/>
 	</target>
 </project>	
