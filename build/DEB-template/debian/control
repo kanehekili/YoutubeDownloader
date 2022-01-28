@@ -1,0 +1,15 @@
+Source: ytdownloader
+Maintainer: kanehekili <mat.wegmann@gmail.com>
+Section: video
+Priority: optional
+Build-Depends: python3, debhelper, python3-gi
+Standards-Version: 1.4.0
+
+
+
+Architecture: all
+Depends: ffmpeg, gir1.2-gtk-3.0, python3-gi, ${shlibs:Depends}, ${misc:Depends}
+Description: GTK GUI for downloading videos - yt-dlp
+Section: video
+Package: ytdownloader
+Priority: optional

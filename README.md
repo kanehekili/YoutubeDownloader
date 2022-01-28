@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.4.0
+Version 1.4.1
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.1/YtDownloader1.4.1.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -45,33 +45,43 @@ There are 3 options for video quality:
   * python3-gi (debian) or python-gobject (Arch)
   * ffmpeg
 
-### Prepare install on Debian, Linux Mint (19.X) or Ubuntu 18.04 (bionic) 
-```
-sudo apt install python3-gi ffmpeg
-```
-### Prepare install on Arch or Manjaro
-```
-sudo pacman -Syu python-gobject ffmpeg
-```
-
-### Prepare install on Fedora
-```
-sudo dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-sudo dnf -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-sudo dnf -y install ffmpeg
-```
-
-### How to install
-* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
-* Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
-* Install just copies a desktop file and some python scripts to /opt/ytdownloader
-* In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
 
 ### Install on Arch or Manjaro
 Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
 * Download PKGBUILD from https://aur.archlinux.org/packages/ytdownloader/
 * Open terminal and execute "makepkg -s"
 * sudo pacman -U ytdownloader.... 
+
+### Install on Ubuntu 20.04 or Mint 20.X
+* sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 10FA0B428C349916
+* sudo add-apt-repository ppa:jentiger-moratai/mediatools
+* sudo apt update
+* sudo apt install ytdownloader
+
+
+### Prepare manual install on Debian (can't unpack the "modern" deb compression...)
+```
+sudo apt install python3-gi ffmpeg
+```
+### Prepare manual install on Arch or Manjaro
+```
+sudo pacman -Syu python-gobject ffmpeg
+```
+
+### Prepare manual install on Fedora
+```
+sudo dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf -y install ffmpeg
+```
+
+### How to install(Manual)
+* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
+* Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
+* Install just copies a desktop file and some python scripts to /opt/ytdownloader
+* In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
+
+
 
 ### Changes
  * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
@@ -82,4 +92,5 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
  * 2021-03 Support for various media platforms
  * 2021-11 Prepare for AUR PKGBUILD
  * 2021-11 Moved backend from youtube-dl to yt-dlp
+ * 2021-11 Prepare for debian .deb 
  

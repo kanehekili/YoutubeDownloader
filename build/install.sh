@@ -15,12 +15,13 @@ ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
 if test -f "/usr/local/bin/yt-dlp"; then
 	echo "yt-dlp installed"
 else
+	echo "downloading yt-dlp ..."
     if ! command -v curl &> /dev/null; then
-      wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+      wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/bin/yt-dlp
     else  
-      curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+      curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/bin/yt-dlp
     fi  
-   chmod a+rx /usr/local/bin/yt-dlp
+   chmod a+rx /usr/bin/yt-dlp
 fi
 
 USER_HOME=$(eval echo ~${SUDO_USER})

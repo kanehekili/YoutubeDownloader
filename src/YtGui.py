@@ -67,21 +67,21 @@ class YtWindow(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
 
         toolbar = Gtk.Toolbar()
-        newtb = Gtk.ToolButton(stock_id=Gtk.STOCK_ADD) #Add manual URL
+        newtb = Gtk.ToolButton(icon_name="list-add") #Add manual URL
         newtb.set_tooltip_text(_t("TIP_TOOL_ADD"))
         newtb.connect("clicked",self.on_tool_add)
-        opentb = Gtk.ToolButton(stock_id=Gtk.STOCK_OPEN)#Load a list
+        opentb = Gtk.ToolButton(icon_name="document-open")#Load a list
         opentb.set_tooltip_text(_t("TIP_TOOL_OPEN"))
         opentb.connect("clicked",self.on_tool_load)
-        savetb = Gtk.ToolButton(stock_id=Gtk.STOCK_SAVE)#save a list
+        savetb = Gtk.ToolButton(icon_name="document-save")#save a list
         savetb.set_tooltip_text(_t("TIP_TOOL_SAVE"))
         savetb.connect("clicked",self.on_tool_save)
-        settings=Gtk.ToolButton(stock_id=Gtk.STOCK_PROPERTIES)
+        settings=Gtk.ToolButton(icon_name="document-properties")
         settings.set_tooltip_text(_t("TIP_TOOL_SETTINGS"))
         settings.connect("clicked",self.on_tool_settings)
         update=None
         if self.model.isManualYT():
-            update=Gtk.ToolButton(stock_id=Gtk.STOCK_REFRESH)
+            update=Gtk.ToolButton(icon_name="view-refresh")
             update.set_tooltip_text(_t("TIP_TOOL_UPDATE"))
             update.connect("clicked",self.on_tool_update)
         
@@ -183,11 +183,11 @@ class YtWindow(Gtk.Window):
         self.buttonStart.connect("clicked", self.on_download_clicked)
         lowerBtnBox.pack_end(self.buttonStart, True, True, 5)
         
-        self.buttonInterrupt = Gtk.Button(label=_t("BTN_INTERRUPT"),image=Gtk.Image(stock=Gtk.STOCK_STOP))
+        self.buttonInterrupt = Gtk.Button(label=_t("BTN_INTERRUPT"),image=Gtk.Image(icon_name="process-stop"))
         self.buttonInterrupt.connect("clicked", self.on_interrupt_clicked)
         lowerBtnBox.pack_end(self.buttonInterrupt, True, True, 5)
         
-        self.buttonCanx = Gtk.Button(label=_t("BUTTON_CANX"),image=Gtk.Image(stock=Gtk.STOCK_QUIT))
+        self.buttonCanx = Gtk.Button(label=_t("BUTTON_CANX"),image=Gtk.Image(icon_name="system-shutdown"))
         self.buttonCanx.set_tooltip_text(_t("TIP_BTN_CANX"))
         self.buttonCanx.connect("clicked", self.on_close_clicked)
         lowerBtnBox.pack_end(self.buttonCanx, True, True,5)
@@ -338,7 +338,7 @@ class YtWindow(Gtk.Window):
         if path is not None:
             self.selection.select_path(path[0])
             rm = Gtk.ImageMenuItem(label=_t("MENU_DEL"))
-            rm.set_image(Gtk.Image(stock=Gtk.STOCK_CANCEL))
+            rm.set_image(Gtk.Image(icon_name="list-remove"))
             rm.connect("activate",self.on_delete_clicked)
             '''
             This simply don't work - Thats where GTK stuff is heading....
@@ -353,16 +353,16 @@ class YtWindow(Gtk.Window):
             menu.add(rm)
 
             mopen = Gtk.ImageMenuItem(label=_t("MENU_OPEN"))
-            mopen.set_image(Gtk.Image(stock=Gtk.STOCK_DIRECTORY))
+            mopen.set_image(Gtk.Image(icon_name="document-open"))
             mopen.connect("activate",self.on_open_clicked)
             menu.add(mopen)    
             reload = Gtk.ImageMenuItem(label= _t("MENU_RELOAD"))
-            reload.set_image(Gtk.Image(stock=Gtk.STOCK_GO_DOWN))
+            reload.set_image(Gtk.Image(icon_name="go-down"))
             reload.connect("activate",self.on_reload_clicked)
             menu.add(reload) 
         
         rmall = Gtk.ImageMenuItem(label=_t("MENU_DEL_ALL"))
-        rmall.set_image(Gtk.Image(stock=Gtk.STOCK_DELETE))
+        rmall.set_image(Gtk.Image(icon_name="edit-delete"))
         rmall.connect("activate",self.on_deleteAll_clicked)
         menu.add(rmall)
         menu.show_all()
@@ -460,7 +460,7 @@ class YtWindow(Gtk.Window):
         
     def _showError(self,text):
         image = Gtk.Image()
-        image.set_from_icon_name(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
+        image.set_from_icon_name("dialog-warning", Gtk.IconSize.DIALOG)
         image.show()
         
         dialog = Gtk.MessageDialog(parent=self, flags=0, title=_t("DIALOG_ERROR_TITLE"),  message_type=Gtk.MessageType.ERROR,
@@ -472,7 +472,7 @@ class YtWindow(Gtk.Window):
 
     def _showMessage(self,text):
         image = Gtk.Image()
-        image.set_from_icon_name(Gtk.STOCK_DIALOG_INFO, Gtk.IconSize.DIALOG)
+        image.set_from_icon_name("dialog-information", Gtk.IconSize.DIALOG)
         image.show()
         
         dialog = Gtk.MessageDialog(parent=self, flags=0, title=_t("DIALOG_INFO_TITLE"),  message_type=Gtk.MessageType.INFO,
@@ -593,14 +593,14 @@ class SettingsDialog(Gtk.Dialog):
 
         self.ventry = Gtk.Entry()
         self.ventry.set_text(self.parent.model.getVideoPath())
-        fc = Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_DIRECTORY))
+        fc = Gtk.Button(image=Gtk.Image(icon_name="folder"))
         fc.connect("clicked",self._onVideoChanged)
         videoBox.pack_start(self.ventry,True,True,5)
         videoBox.pack_end(fc,False,False,5)
         
         self.aentry = Gtk.Entry()
         self.aentry.set_text(self.parent.model.getMusicPath())
-        fc = Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_DIRECTORY))
+        fc = Gtk.Button(image=Gtk.Image(icon_name="folder"))
         fc.connect("clicked",self._onAudioChanged)
         audioBox.pack_start(self.aentry,True,True,5)
         audioBox.pack_end(fc,False,False,5)

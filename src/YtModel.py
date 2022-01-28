@@ -20,10 +20,7 @@ MODE_VIDEO="V";
 MODE_AUDIO="A";
 lang = locale.getdefaultlocale()
 
-#YOUTUBE_DL="/usr/bin/youtube-dl"
-YOUTUBE_DL="/usr/local/bin/yt-dlp"
-#if not os.path.exists(YOUTUBE_DL):
-#    YOUTUBE_DL="/usr/local/bin/youtube-dl"    
+YOUTUBE_DL="/usr/bin/yt-dlp"
 if not os.path.exists(YOUTUBE_DL):
     YOUTUBE_DL=None
 
@@ -76,7 +73,7 @@ if "en" in lang[0]:
     TEXT_MAP["SEL_MP4"]="Good quality with mp4"
     TEXT_MAP["SEL_MKV"]="Highest quality with mkv"
     TEXT_MAP["SEL_ANY"]="Highest quality auto container"
-    TEXT_MAP["NO_DL"]="Could not find yt-dlp. It should be either in \n /usr/bin or /usr/local/bin"
+    TEXT_MAP["NO_DL"]="Could not find yt-dlp. It should be in \n /usr/bin"
     TEXT_MAP["STATUS_INTERRUPT"]="Process interrupted"
     TEXT_MAP["ALREADY_THERE"]="File already downloaded"
     
@@ -128,7 +125,7 @@ elif "de" in lang[0]:
     TEXT_MAP["SEL_MP4"]="Gute Qualität im mp4 Format"
     TEXT_MAP["SEL_MKV"]="Sehr gute Qualität im mkv Format"
     TEXT_MAP["SEL_ANY"]="Sehr gute Qualität im beliebigen Format"
-    TEXT_MAP["NO_DL"]="yt-dlp nicht gefunden. Sollte entweder in\n /usr/bin oder /usr/local/bin sein"
+    TEXT_MAP["NO_DL"]="yt-dlp nicht gefunden. Sollte in\n /usr/bin sein"
     TEXT_MAP["STATUS_INTERRUPT"]="Download abgebrochen"
     TEXT_MAP["ALREADY_THERE"]="Datei schon geladen"
     

@@ -1,0 +1,3 @@
+opt/* opt/ytdownloader
+addons/yt-dlp /usr/bin
+addons/YtGui.desktop /usr/share/applications

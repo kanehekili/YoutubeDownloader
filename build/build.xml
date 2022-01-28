@@ -5,14 +5,28 @@
 		<property name="stage" value="stage"/>
 		<property name="rootDir" value="${stage}/YtDownloader"/>
 		<property name="aurTarget" value="AUR"/>
+		<property name="debTarget" value="DEB"/>
+		<property name="ubu1Build" value="ytdownloader_${version}-${pkgrelease}-${ubu1}"/>
+		<property name="ubu2Build" value="ytdownloader_${version}-${pkgrelease}-${ubu2}"/>		
+		<property name="ubu1Target" value="${stage}/${ubu1Build}"/>
+		<property name="ubu2Target" value="${stage}/${ubu2Build}"/>		
 		
 		<delete dir="${stage}"/>
 		<delete dir="${aurTarget}"/>
 		<mkdir dir="${stage}"/>
 		<mkdir dir="${rootDir}"/>
         <mkdir dir="${aurTarget}"/>
+		<mkdir dir="${ubu1Target}"/>
+		<mkdir dir="${ubu2Target}"/>        
+		
 		<property name="source" value="../src"/>
 		<property name="aurSource" value="AUR-template"/>
+		
+		<!-- get currentt yt-dlp via wget or curl -->  
+		<exec dir="." executable="/bin/bash" os="Linux">
+		 <arg value="updateYtdl.sh"/>
+		</exec>
+		
 		
 		<copy todir="${rootDir}">
 			<fileset file="*.desktop">
@@ -25,8 +39,7 @@
 			
 		<chmod file="${rootDir}/install.sh" perm="ug+rwx"/>
 		<chmod file="${rootDir}/uninstall.sh" perm="ug+rwx"/>
-		<chmod file="${rootDir}/installYoutube-dl.sh" perm="ug+rwx"/>
-		
+
 		<copy todir="${rootDir}">
 			<fileset file="${source}/YtGui.py"/>
 				<filterset>
@@ -59,11 +72,85 @@
 			<filterset>
 				<filter token="md5sum" value="${aurMD5}"/>
 				<filter token="xxx" value="${version}"/>
+				<filter token="xpkgrelx" value="${pkgrelease}"/>
 			</filterset>
 		</copy>		
 		<exec dir="${aurTarget}" executable="makepkg" output="${aurTarget}/.SRCINFO" os="Linux">
 		 <arg value="--printsrcinfo"/> 
 		</exec>
+
+	<tstamp>
+    	 <format property="time.stamp" pattern="EEE, d LLL yyyy HH:mm:ss"/>
+	</tstamp>
+
+
+		<!-- DEBBUILD ubu1-->
+		<copy todir="${ubu1Target}">
+			<fileset dir="DEB-template"/>
+			<filterset>
+				<filter token="ubu" value="${ubu1}"/>
+				<filter token="xxx" value="${version}"/>
+				<filter token="xpkgrelx" value="${pkgrelease}"/>
+				<filter token="xtsx" value="${time.stamp}"/>
+			</filterset>			
+			
+		</copy>
+		<mkdir dir="${ubu1Target}/addons"/>
+		<mkdir dir="${ubu1Target}/debian"/>
+		<mkdir dir="${ubu1Target}/opt"/>
+		<copy todir="${ubu1Target}/opt">
+			<fileset file="${source}/*.py" />
+			<filterset>
+			    <filter token="xxx" value="${version}"/>
+			</filterset>
+			<fileset file="${source}/*.png"/>
+		</copy>
+		<copy todir="${ubu1Target}/addons">
+			<fileset file="*.desktop"/>
+			<fileset file="yt-dlp"/>
+		</copy>
+		<chmod file="${ubu1Target}/opt/YtGui.py" perm="ug+rwx"/>
+		<chmod file="${ubu1Target}/addons/yt-dlp" perm="ug+rwx"/>
+		<exec executable="tar" output="/dev/null" os="Linux">
+			<arg value="-cp"/>
+			<arg value="--file=${debTarget}/${ubu1Build}.tar"/>
+			<arg value="--directory=${stage}"/>
+			<arg value="${ubu1Build}"/>
+		</exec>
 		
+
+		<!-- DEBBUILD ubu2-->
+		<copy todir="${ubu2Target}">
+			<fileset dir="DEB-template"/>
+			<filterset>
+				<filter token="ubu" value="${ubu2}"/>
+				<filter token="xxx" value="${version}"/>
+				<filter token="xpkgrelx" value="${pkgrelease}"/>
+				<filter token="xtsx" value="${time.stamp}"/>
+			</filterset>			
+			
+		</copy>
+		<mkdir dir="${ubu2Target}/addons"/>
+		<mkdir dir="${ubu2Target}/debian"/>
+		<mkdir dir="${ubu2Target}/opt"/>
+		<copy todir="${ubu2Target}/opt">
+			<fileset file="${source}/*.py" />
+			<filterset>
+			    <filter token="xxx" value="${version}"/>
+			</filterset>
+			<fileset file="${source}/*.png"/>
+		</copy>
+		<copy todir="${ubu2Target}/addons">
+			<fileset file="*.desktop"/>
+			<fileset file="yt-dlp"/>
+		</copy>
+		<chmod file="${ubu2Target}/opt/YtGui.py" perm="ug+rwx"/>
+		<chmod file="${ubu2Target}/addons/yt-dlp" perm="ug+rwx"/>
+		<exec executable="tar" output="/dev/null" os="Linux">
+			<arg value="-cp"/>
+			<arg value="--file=${debTarget}/${ubu2Build}.tar"/>
+			<arg value="--directory=${stage}"/>
+			<arg value="${ubu2Build}"/>
+		</exec>				
 	</target>
 </project>	
