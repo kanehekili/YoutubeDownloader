@@ -101,7 +101,7 @@
 		<copy todir="${ubu1Target}/opt">
 			<fileset file="${source}/*.py" />
 			<filterset>
-			    <filter token="xxx" value="${version}"/>
+			    <filter token="xxxx" value="${version}"/>
 			</filterset>
 		</copy>
 
@@ -140,7 +140,7 @@
 		<copy todir="${ubu2Target}/opt">
 			<fileset file="${source}/*.py" />
 			<filterset>
-			    <filter token="xxx" value="${version}"/>
+			    <filter token="xxxx" value="${version}"/>
 			</filterset>
 		</copy>
 		<copy todir="${ubu2Target}/opt">
