@@ -29,8 +29,40 @@ if test -f "$USER_HOME/.config/YtDownloader.ini"; then
     rm $USER_HOME/.config/YtDownloader.ini;
 fi
 
-echo "####################################################"
-echo "#   Ensure you have installed:                     #"                     
-echo "#       *ffmpeg                                    #"
-echo "####################################################"
-echo "App installed."
+if ! command -v ffmpeg &> /dev/null; then
+  echo "ffmpeg not installed, trying to install it through your package manager."
+  YUM_CMD=$(which yum)
+  PACMAN_CMD=$(which pacman)
+  APT_GET_CMD=$(which apt-get)
+  ZYPPER_CMD=$(which zypper)
+
+
+  echo $YUM_CMD
+  echo $PACMAN_CMD
+  echo $APT_GET_CMD
+  echo $ZYPPER_CMD
+
+
+  if [[ ! -z $YUM_CMD ]]; then
+      sudo dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+      sudo dnf -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+      sudo dnf -y install ffmpeg
+  elif [[ ! -z $PACMAN_CMD ]]; then
+      pacman -S ffmpeg
+  elif [[ ! -z $APT_GET_CMD ]]; then
+      apt-get ffmpeg
+  elif [[ ! -z $ZYPPER_CMD ]]; then
+      zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
+      zypper refresh
+      zypper install ffmpegthumbs
+  else
+     echo "error: Can't install package ffmpeg, check https://ffmpeg.org/ on how to download it for your system."
+     exit 1;
+  fi
+fi
+
+printf '\n'
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+printf '\n'
+
+echo "App successfully installed."
