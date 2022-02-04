@@ -31,10 +31,13 @@ fi
 
 if ! command -v ffmpeg &> /dev/null; then
   echo "ffmpeg not installed, trying to install it through your package manager."
+
+  ## checking package managers if they are installed
   YUM_CMD=$(which yum)
   PACMAN_CMD=$(which pacman)
   APT_GET_CMD=$(which apt-get)
   ZYPPER_CMD=$(which zypper)
+  ## OTHER_CMD=$(which OTHER)
 
 
   echo $YUM_CMD
@@ -55,6 +58,8 @@ if ! command -v ffmpeg &> /dev/null; then
       zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
       zypper refresh
       zypper install ffmpegthumbs
+  ## elif [[ ! -z $OTHER_CMD ]]; then
+  ##    OTHER_COMMAND
   else
      echo "error: Can't install package ffmpeg, check https://ffmpeg.org/ on how to download it for your system."
      exit 1;
