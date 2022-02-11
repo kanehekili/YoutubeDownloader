@@ -58,6 +58,9 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
 * sudo apt update
 * sudo apt install ytdownloader
 
+### Manual install
+The ./install.sh file should install ffmpeg, if not available (thanks to @fischer-felix). The python gtk libs should be already installed
+Below an exact descrition of dependent packages. 
 
 ### Prepare manual install on Debian (can't unpack the "modern" deb compression...)
 ```
@@ -93,4 +96,5 @@ sudo dnf -y install ffmpeg
  * 2021-11 Prepare for AUR PKGBUILD
  * 2021-11 Moved backend from youtube-dl to yt-dlp
  * 2021-11 Prepare for debian .deb 
+ * 2022-02 Update install.sh(thanks to @fischer-felix) + Deb improvements
  
