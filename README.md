@@ -3,7 +3,7 @@ GTK3 UI for youtube,vimeo and others
 
 Version 1.4.1
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.1/YtDownloader1.4.1.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.2/YtDownloader1.4.2.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -59,8 +59,9 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
 * sudo apt install ytdownloader
 
 ### Manual install
-The ./install.sh file should install ffmpeg, if not available (thanks to @fischer-felix). The python gtk libs should be already installed
-Below an exact descrition of dependent packages. 
+The ./install.sh file should install ffmpeg, if not available (thanks to @fischer-felix). The python gtk libs should be already installed.
+
+Below an exact description of dependent packages. 
 
 ### Prepare manual install on Debian (can't unpack the "modern" deb compression...)
 ```
@@ -82,8 +83,7 @@ sudo dnf -y install ffmpeg
 * Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.0/YtDownloader1.4.0.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
-* In case your distro's youtube-dl is too old use **sudo ./installYoutube-dl.sh** to get the lastest version. Be sure to remove the youtube-dl package before, in case it is already installed
-
+* ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 
 ### Changes
