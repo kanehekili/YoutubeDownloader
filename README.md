@@ -1,7 +1,7 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.4.1
+Version 1.4.2
 
 ![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.2/YtDownloader1.4.2.tar)
 
@@ -53,7 +53,7 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
 * sudo pacman -U ytdownloader.... 
 
 ### Install on Ubuntu 20.04 or Mint 20.X
-* sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 10FA0B428C349916
+* (sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 10FA0B428C349916)
 * sudo add-apt-repository ppa:jentiger-moratai/mediatools
 * sudo apt update
 * sudo apt install ytdownloader
@@ -85,7 +85,6 @@ sudo dnf -y install ffmpeg
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
-
 ### Changes
  * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
  * 2019-12 Doubleclick invokes play of default audio or video player, open folder via context menu  
@@ -97,4 +96,5 @@ sudo dnf -y install ffmpeg
  * 2021-11 Moved backend from youtube-dl to yt-dlp
  * 2021-11 Prepare for debian .deb 
  * 2022-02 Update install.sh(thanks to @fischer-felix) + Deb improvements
+ * 2022-05 Created deb version for jammy(Ubuntu 22.04)
  
