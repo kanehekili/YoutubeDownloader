@@ -357,8 +357,8 @@ yt-dlp -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
 '''
 class Downloader():
     ISPRESENT = re.compile('.+has already been downloaded')
-    REGEXP = re.compile("([0-9.]+)% of ([~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
-    DONE = re.compile('([0-9.]+)% [A-z]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
+    REGEXP = re.compile("([0-9.]+)% of ([ ~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
+    DONE = re.compile('([0-9.]+)% [A-z ]+ ([0-9.]+)(.iB) in ([0-9:]+)' )
     TITLE = re.compile("\[download\] Destination: ([^.]+)+")
     MP4 = ["python3",YOUTUBE_DL,"-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]","-o",'%(title)s.%(ext)s',"--merge-output-format","mp4"]
     MKV = ["python3",YOUTUBE_DL,"-f","bestvideo+bestaudio/best","-o",'%(title)s.%(ext)s',"--merge-output-format","mkv"]

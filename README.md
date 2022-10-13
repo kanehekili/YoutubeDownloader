@@ -97,4 +97,5 @@ sudo dnf -y install ffmpeg
  * 2021-11 Prepare for debian .deb 
  * 2022-02 Update install.sh(thanks to @fischer-felix) + Deb improvements
  * 2022-05 Created deb version for jammy(Ubuntu 22.04)
+ * 2022-10 Updated regex for new progress in yt-dlp
  
