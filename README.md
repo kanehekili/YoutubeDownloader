@@ -3,7 +3,7 @@ GTK3 UI for youtube,vimeo and others
 
 Version 1.4.3
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.3/YtDownloader1.4.3.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.4/YtDownloader1.4.4.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -98,4 +98,5 @@ sudo dnf -y install ffmpeg
  * 2022-02 Update install.sh(thanks to @fischer-felix) + Deb improvements
  * 2022-05 Created deb version for jammy(Ubuntu 22.04)
  * 2022-10 Updated regex for new progress in yt-dlp
+ * 2022-12 command is now ytgui 
  
