@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.4.3
+Version 1.4.4
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.4/YtDownloader1.4.4.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.4/ytdownloader1.4.4.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
