@@ -3,7 +3,7 @@
 	<target name="build_dir">
     	<property file="build.properties"/>
 		<property name="stage" value="stage"/>
-		<property name="rootDir" value="${stage}/YtDownloader"/>
+		<property name="rootDir" value="${stage}/ytdownloader"/>
 		<property name="aurTarget" value="AUR"/>
 		<property name="debTarget" value="DEB"/>
 		<property name="ubu1Build" value="ytdownloader_${version}+${pkgrelease}~${ubu1}"/>
@@ -61,13 +61,13 @@
 		</delete>	
 		<exec executable="tar" output="/dev/null" os="Linux">
 			<arg value="-cp"/>
-			<arg value="--file=YtDownloader${version}.tar"/>
+			<arg value="--file=ytdownloader${version}.tar"/>
 			<arg value="--directory=${stage}"/>
-			<arg value="YtDownloader"/>
+			<arg value="ytdownloader"/>
 		</exec>
 		
 		<!-- PKBUILD -->
-		<checksum file="YtDownloader${version}.tar" property="aurMD5"/>
+		<checksum file="ytdownloader${version}.tar" property="aurMD5"/>
 		<copy todir="${aurTarget}">
 			<fileset file="${aurSource}/*"/>
 			<filterset>

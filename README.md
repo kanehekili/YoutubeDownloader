@@ -28,7 +28,7 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 
 * Multi selection via "CRTL+A" 
 
-* Can also be started via terminal with "YtGui"
+* Can also be started via terminal with "ytgui"
 
 ### Settings
 Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
