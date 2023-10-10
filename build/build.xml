@@ -7,9 +7,11 @@
 		<property name="aurTarget" value="AUR"/>
 		<property name="debTarget" value="DEB"/>
 		<property name="ubu1Build" value="ytdownloader_${version}+${pkgrelease}~${ubu1}"/>
-		<property name="ubu2Build" value="ytdownloader_${version}+${pkgrelease}~${ubu2}"/>		
+		<property name="ubu2Build" value="ytdownloader_${version}+${pkgrelease}~${ubu2}"/>
+		<property name="ubu3Build" value="ytdownloader_${version}+${pkgrelease}~${ubu3}"/>		
 		<property name="ubu1Target" value="${stage}/${ubu1Build}"/>
-		<property name="ubu2Target" value="${stage}/${ubu2Build}"/>		
+		<property name="ubu2Target" value="${stage}/${ubu2Build}"/>
+		<property name="ubu3Target" value="${stage}/${ubu3Build}"/>				
 		
 		<delete dir="${stage}"/>
 		<delete dir="${aurTarget}"/>
@@ -159,6 +161,45 @@
 			<arg value="--directory=${stage}"/>
 			<arg value="${ubu2Build}"/>
 		</exec>	
+		
+		<!-- DEBBUILD ubu3-->
+		<copy todir="${ubu3Target}">
+			<fileset dir="DEB-template"/>
+			<filterset>
+				<filter token="ubu" value="${ubu3}"/>
+				<filter token="xxx" value="${version}"/>
+				<filter token="xpkgrelx" value="${pkgrelease}"/>
+				<filter token="xtsx" value="${time.stamp}"/>
+			</filterset>			
+		</copy>
+		
+		<mkdir dir="${ubu3Target}/addons"/>
+		<mkdir dir="${ubu3Target}/debian"/>
+		<mkdir dir="${ubu3Target}/opt"/>
+		<copy todir="${ubu3Target}/opt">
+			<fileset file="${source}/*.py" />
+			<filterset>
+			    <filter token="xxxx" value="${version}"/>
+			</filterset>
+		</copy>
+
+	   <copy todir="${ubu3Target}/opt">
+  		   <fileset file="${source}/*.png"/>
+		</copy>
+		
+		<copy todir="${ubu3Target}/addons">
+			<fileset file="*.desktop"/>
+			<fileset file="yt-dlp"/>
+		</copy>
+		<chmod file="${ubu3Target}/opt/YtGui.py" perm="ug+rwx"/>
+		<chmod file="${ubu3Target}/addons/yt-dlp" perm="ug+rwx"/>
+		<exec executable="tar" output="/dev/null" os="Linux">
+			<arg value="-cp"/>
+			<arg value="--file=${debTarget}/${ubu3Build}.tar"/>
+			<arg value="--directory=${stage}"/>
+			<arg value="${ubu3Build}"/>
+		</exec>		
+		
 		<delete dir="${stage}"/>
 	</target>
 </project>	

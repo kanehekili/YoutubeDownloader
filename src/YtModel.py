@@ -186,9 +186,7 @@ class Model():
         self._assureConfig()
     
     def isManualYT(self):
-        #return os.path.isfile("/usr/local/bin/youtube-dl")
-        #currently always
-        return True
+        return not os.path.isfile("/opt/ytdownloader/ytextern")
         
     
     def _assureConfig(self):
