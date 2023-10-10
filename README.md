@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.4.4
+Version 1.4.5
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.4/ytdownloader1.4.4.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.4/ytdownloader1.4.5.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -80,7 +80,7 @@ sudo dnf -y install ffmpeg
 ```
 
 ### How to install(Manual)
-* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.3/YtDownloader1.4.3.tar)
+* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.5/YtDownloader1.4.5.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
@@ -99,4 +99,5 @@ sudo dnf -y install ffmpeg
  * 2022-05 Created deb version for jammy(Ubuntu 22.04)
  * 2022-10 Updated regex for new progress in yt-dlp
  * 2022-12 command is now ytgui 
+ * 2023-10 yt-dlp not delivered for arch, but is dependency
  
