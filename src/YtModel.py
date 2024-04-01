@@ -267,7 +267,7 @@ class Model():
             self.config.add("DOWNLOAD_TYPE", MODE_AUDIO)
 
     def setYtBackend(self, backendMode):
-        self.config.add("BACKEND", backendMode)
+        self.config.add("BACKEND", str(backendMode))
     
     def getYtBackend(self):
         return self.config.getInt("BACKEND")

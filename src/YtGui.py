@@ -220,11 +220,12 @@ class YtWindow(Gtk.Window):
             widget.set_icon_name('package-reinstall') #Git stuff -ignore distro if installed
             self.update.set_sensitive(True) 
             YtModel.YOUTUBE_DL =YtModel.INTRINSIC_YT_PATH
+            self.model.setYtBackend(YtModel.BACKEND_LOCAL)
         else:
             widget.set_icon_name('package-remove')#revert to old distro stuff
             self.update.set_sensitive(False)
             YtModel.YOUTUBE_DL =YtModel.DISTRO_DL
-    
+            self.model.setYtBackend(YtModel.BACKEND_DISTRO)
             
     def showStatus(self, text):
         self.statusField.set_label(text) 
