@@ -12,16 +12,23 @@ cp -r $DIR/* /opt/ytdownloader;
 chmod +x /opt/ytdownloader/YtGui.py
 ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
 
-if test -f "/usr/local/bin/yt-dlp"; then
-	echo "yt-dlp installed"
-else
+if test -f "/usr/bin/yt-dlp"; then
+	echo "yt-dlp installed in /usr/bin"
+elif test -f "/opt/ytdownloader/yt-dlp"; then
+	echo "yt-dlp installed in /opt"
+else 
 	echo "downloading yt-dlp ..."
-    if ! command -v curl &> /dev/null; then
-      wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/bin/yt-dlp
-    else  
-      curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/bin/yt-dlp
-    fi  
-   chmod a+rx /usr/bin/yt-dlp
+
+#if test -f "/usr/bin/yt-dlp" || test -f "/opt/ytdownloader/yt-dlp"; then
+#	echo "yt-dlp installed"
+#else
+#	echo "downloading yt-dlp ..."
+#    if ! command -v curl &> /dev/null; then
+#      wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /opt/ytdownloader/yt-dlp
+#    else  
+#      curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /opt/ytdownloader/yt-dlp
+#    fi  
+#   chmod a+rx /opt/ytdownloader/yt-dlp
 fi
 
 USER_HOME=$(eval echo ~${SUDO_USER})

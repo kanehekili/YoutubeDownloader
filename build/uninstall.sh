@@ -8,9 +8,6 @@ fi
 sudo rm /usr/share/applications/YtGui.desktop
 sudo rm /usr/bin/YtGui
 sudo rm -rf /opt/ytdownloader
-if test -f "/usr/bin/yt-dlp"; then
-  rm /usr/bin/yt-dlp
-fi
 if test -f "$USER_HOME/.config/YtDownloader.ini"; then
 	rm $HOME/.config/YtDownloader.ini
 fi

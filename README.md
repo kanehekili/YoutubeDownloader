@@ -40,6 +40,10 @@ There are 3 options for video quality:
 * MKV container can take literally any codec. Since youtube often uses webm container with vp9 and opus codecs this would be the choice for best quality
 * The "auto" modus will not pass any merge requests to youtube-dl, so depending on the available data either MKV or webm container will be the output. 
 
+### Change backend
+If yt-dl is provided by your distro, it can't be updated by this app. However a local yt-dl version is provided -which can be activated by the "switcher" button next to the "Updater". The switcher button is not shown if no yt-dl has been provided by the distro - the internally provided python blob is used.
+
+
 ### Prerequisites
   * python3
   * python3-gi (debian) or python-gobject (Arch)
