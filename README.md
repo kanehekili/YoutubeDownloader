@@ -104,4 +104,5 @@ sudo dnf -y install ffmpeg
  * 2022-10 Updated regex for new progress in yt-dlp
  * 2022-12 command is now ytgui 
  * 2023-10 yt-dlp not delivered for arch, but is dependency
+ * 2024-04 yt-dlp delivered for arch, make it selectable
  
