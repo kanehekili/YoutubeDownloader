@@ -859,7 +859,8 @@ class YTInfo():
             self._handleError(res.error)
         else:
             # result from YtModel
-            splitUrl = self.target.split("playlist")  # url and list/id
+            #splitUrl = self.target.split("playlist")  # url and list/id
+            splitUrl = self.target.split("list")  # url and list/id
             isList = len(splitUrl) > 1 
             lines = res.result
             titles = []
