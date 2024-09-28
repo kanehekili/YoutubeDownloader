@@ -7,3 +7,5 @@ dput ppa:jentiger-moratai/mediatools ytdownloader_1.x.x._source.changes
 #install:
 #sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 10FA0B428C349916 (nicht bei mint)
 #sudo add-apt-repository ppa:jentiger-moratai/mediatools
+
+jammy (22.04) onwards has yt-dlp as a package - so the binary interferes.

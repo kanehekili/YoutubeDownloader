@@ -661,7 +661,7 @@ class SettingsDialog(Gtk.Dialog):
         versBox.pack_start(lbl, False, False, 2)
         
         lbl = Gtk.Label()
-        lbl.set_markup('<span size="small">Copyright (c) 2019-21 Kanehekili</span>')
+        lbl.set_markup('<span size="small">Copyright (c) 2019-24 Kanehekili</span>')
         versBox.pack_start(lbl, False, False, 2)
         
         box = self.get_content_area()
