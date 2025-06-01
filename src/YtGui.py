@@ -563,9 +563,11 @@ class YtWindow(Gtk.Window):
             v = dialog.getVideoPath()
             a = dialog.getAudioPath()
             f = dialog.getFormat()
+            b = dialog.getBrowser()
             self.model.setVideoPath(v)
             self.model.setMusicPath(a)
             self.model.setFormat(f)
+            self.model.setBrowser(b)
         dialog.destroy() 
 
 
@@ -640,6 +642,28 @@ class SettingsDialog(Gtk.Dialog):
         rbany = Gtk.RadioButton.new_with_label_from_widget(rbmp4, _t("SEL_ANY"))
         rbany.connect("toggled", self._on_button_toggled, "2")
         
+        #add browser choice
+        brauseBox = Gtk.VBox()
+        brauseBox.set_border_width(5)
+        brauseSettings = Gtk.Frame()
+        brauseSettings.set_margin_top(10)
+        brauseSettings.set_label(_t("DL_BROWSER_TITLE"))
+        brauseSettings.add(brauseBox)        
+        
+        
+        self.browserChoice = Gtk.ComboBoxText()
+        self.browserChoice.append("firefox","firefox")
+        self.browserChoice.append("chromium","chromium")
+        self.browserChoice.append("chrome","chrome")
+        self.browserChoice.append("brave","brave")
+        brauseBox.pack_start(self.browserChoice, False, False, 0)
+        
+        #usw
+        self.browserChoice.set_active_id(self.parent.model.getBrowser())
+        self.browserChoice.set_tooltip_text(_t("DL_BROWER_TIP"))
+        #self.browserChoice.connect("changed", self._onBrauserChanged)
+        
+        
         self.format = self.parent.model.getFormat()
         indx = self.parent.model.FORMATS.index(self.format)
         if indx == 0:
@@ -669,7 +693,9 @@ class SettingsDialog(Gtk.Dialog):
         box.add(headBox)
         box.add(gtkdummyBox)
         box.add(loadSettings)
+        box.add(brauseSettings)
         box.add(versBox)
+
         self.show_all()
         
     def  _onVideoChanged(self, widget):
@@ -693,7 +719,13 @@ class SettingsDialog(Gtk.Dialog):
             thePath = dialog.get_filename()
             self.aentry.set_text(thePath)
         dialog.destroy() 
-
+    '''
+    def _onBrauserChanged(self,widget):
+        text = widget.get_active_text()
+        #save it to some model
+        print("Test brauser:",text)
+    '''        
+        
     def _on_button_toggled(self, widget, idx):
         if widget.get_active():
             indx = int(idx)
@@ -707,7 +739,9 @@ class SettingsDialog(Gtk.Dialog):
 
     def getFormat(self):
         return self.format
-
+    
+    def getBrowser(self):
+        return self.browserChoice.get_active_text()
 
 class URLDialog(Gtk.Dialog):
 
@@ -781,7 +815,8 @@ class YTDownloader():
             aiter = fs.get_iter(self.treeRows[0])
             currIndex = 0
         
-        quality = self.parent.model.getFormat()    
+        quality = self.parent.model.getFormat()  
+        browser = self.parent.model.getBrowser() 
 
         self.proc = Downloader(self)
         while (aiter != None and self.proc is not None):
@@ -791,7 +826,7 @@ class YTDownloader():
                 
                 self.onProgress(0.0, "0.0KiB")
                 url = fs.get_value (aiter, 4)
-                res = self.proc.download(url, mode, quality, targetDir)
+                res = self.proc.download(url, mode, quality,browser, targetDir)
                 if res.hasError():
                     return res.error
             if currIndex == -1:

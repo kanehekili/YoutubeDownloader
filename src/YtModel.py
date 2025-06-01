@@ -87,6 +87,8 @@ if "en" in lang[0]:
     TEXT_MAP["STATUS_INTERRUPT"] = "Process interrupted"
     TEXT_MAP["ALREADY_THERE"] = "File already downloaded"
     TEXT_MAP["DISTRO_YT"] = "Switch between the latest GIT(pressed) or distro yt-dlp"
+    TEXT_MAP["DL_BROWSER_TITLE"] = "Select browser for cookies"
+    TEXT_MAP["DL_BROWER_TIP"] = "You need to sign into Youtube. Select which browser has the cookie"
     
 elif "de" in lang[0]:
     TEXT_MAP["TITLE"] = "Video Downloader"
@@ -140,6 +142,8 @@ elif "de" in lang[0]:
     TEXT_MAP["STATUS_INTERRUPT"] = "Download abgebrochen"
     TEXT_MAP["ALREADY_THERE"] = "Datei schon geladen"
     TEXT_MAP["DISTRO_YT"] = "Yt-dlp als GIT Version(gedrückt) oder Distro Version nutzen"  
+    TEXT_MAP["DL_BROWSER_TITLE"] = "Brauser Auswahl für cookies"
+    TEXT_MAP["DL_BROWER_TIP"] = "Youtube erwartet, das man eingeloggt ist. Wähle Deinen Brauser aus"
     
     
 def _t(s):
@@ -192,6 +196,7 @@ class ConfigAccessor():
 
 class Model():
     FORMATS = ["mp4", "mkv", "any"]
+    BRAUSER_DEFAULT="firefox";
 
     def __init__(self):
         self.text = TEXT_MAP
@@ -243,6 +248,16 @@ class Model():
     
     def setMusicPath(self, path):
         self.config.add("DEST_MUSIC", path)
+
+    def setBrowser(self,browserName):
+        self.config.add("BRAUSER", browserName)
+        
+    def getBrowser(self):
+        br = self.config.get("BRAUSER")
+        if br is None:
+            br= self.BRAUSER_DEFAULT
+        print("Using brauser:",br)
+        return br
 
     def getVideoPath(self):
         return self.config.get("DEST_VIDEO")
@@ -399,7 +414,7 @@ class Downloader():
         self.AUDIO = ["python3", YOUTUBE_DL, "-f", "bestaudio/best", "-o", '%(title)s.%(ext)s', "--extract-audio", "--audio-quality", "0", "--audio-format", "mp3"]
 
 
-    def download(self, url, videomode, quality, targetDir):
+    def download(self, url, videomode, quality,browser,targetDir):
         # TODO --transcode-video to mp4?
         if YOUTUBE_DL is None:
             return ProcResult(None, _t("NO_DL"))
@@ -413,7 +428,13 @@ class Downloader():
                 cmd = self.MKV
             else:
                 cmd = self.ANY
-        command = cmd + [url]
+        #cookie hack: https://www.reddit.com/r/youtubedl/comments/1kezfg1/problems_with_ytdlp_on_yt/
+        if browser:
+            cookie = ["--cookies-from-browser",browser,url]
+        else:
+            cookie = [url]
+        command = cmd + cookie
+        print("CMD:",command)
         start = time.monotonic() - 1000
         try:
             for line in executeAsync(command, self, targetDir):
