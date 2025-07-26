@@ -30,18 +30,23 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 
 * Can also be started via terminal with "ytgui"
 
+* Update the "yt-dl" backend by using the "circle" icon. This will check if a newer version is available - regardless if your DE provides its own binary.
+
 ### Settings
 Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
 
-![Screenshot](./YtSettings.png)
+![Screenshot](./ytdialog.png)
 
 There are 3 options for video quality:
 * A MP4 container will lead mostly to a good result,but usually not the best
 * MKV container can take literally any codec. Since youtube often uses webm container with vp9 and opus codecs this would be the choice for best quality
 * The "auto" modus will not pass any merge requests to youtube-dl, so depending on the available data either MKV or webm container will be the output. 
 
+Select the browser for downloading - Youtube enforces this.
+* Youtube will hinder you - select the browser which you are using while dragging. Be sure that you are "logged in to youtube" - otherwise you will not be able to download.
+
 ### Change backend
-If yt-dl is provided by your distro, it can't be updated by this app. However a local yt-dl version is provided -which can be activated by the "switcher" button next to the "Updater". The switcher button is not shown if no yt-dl has been provided by the distro - the internally provided python blob is used.
+If yt-dl is provided by your distro, you may not need to update it. However a local yt-dl version is provided -which can be activated by the "switcher" button next to the "Updater". The switcher button is not shown if no yt-dl has been provided by the distro - the internally provided python blob is used.
 
 
 ### Prerequisites
@@ -67,7 +72,7 @@ The ./install.sh file should install ffmpeg, if not available (thanks to @fische
 
 Below an exact description of dependent packages. 
 
-### Prepare manual install on Debian (can't unpack the "modern" deb compression...)
+### Prepare manual install on Debian
 ```
 sudo apt install python3-gi ffmpeg
 ```
@@ -90,20 +95,22 @@ sudo dnf -y install ffmpeg
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 ### Changes
- * 2019-11 Immediate download when dragged, added context menus for delete, delete via "DEL" button, clean output file name   
- * 2019-12 Doubleclick invokes play of default audio or video player, open folder via context menu  
- * 2021-02 Support for youtube playlists - redesigned the model, multiple selection possible
- * 2021-02 Added update for youtube-dl (if installed manually by the "installYoutube-dl" script)
- * 2021-02 Fixed youtube playlist special url downloads
- * 2021-03 Support for various media platforms
- * 2021-11 Prepare for AUR PKGBUILD
- * 2021-11 Moved backend from youtube-dl to yt-dlp
- * 2021-11 Prepare for debian .deb 
- * 2022-02 Update install.sh(thanks to @fischer-felix) + Deb improvements
- * 2022-05 Created deb version for jammy(Ubuntu 22.04)
- * 2022-10 Updated regex for new progress in yt-dlp
- * 2022-12 command is now ytgui 
- * 2023-10 yt-dlp not delivered for arch, but is dependency
+ * 2025-07 Use cookies for Youtube
+ * 2024-09 fix youtube change for playlists 
  * 2024-04 yt-dlp delivered for arch, make it selectable
- * 2024-09 fix youtube change for playlists
+ * 2023-10 yt-dlp not delivered for arch, but is dependency
+ * 2022-12 command is now ytgui 
+ * 2022-10 Updated regex for new progress in yt-dlp  
+ * 2022-05 Created deb version for jammy(Ubuntu 22.04) 
+ * 2022-02 Update install.sh(thanks to @fischer-felix) + Deb improvements 
+ * 2021-11 Prepare for debian .deb 
+ * ...
+
+
+ 
+
+
+
+
+
  
