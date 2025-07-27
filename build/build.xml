@@ -6,9 +6,9 @@
 		<property name="rootDir" value="${stage}/ytdownloader"/>
 		<property name="aurTarget" value="AUR"/>
 		<property name="debTarget" value="DEB"/>
-		<property name="ubu1Build" value="ytdownloader_${version}+${pkgrelease}~${ubu1}"/>
-		<property name="ubu2Build" value="ytdownloader_${version}+${pkgrelease}~${ubu2}"/>
-		<property name="ubu3Build" value="ytdownloader_${version}+${pkgrelease}~${ubu3}"/>		
+		<property name="ubu1Build" value="ytdownloader_${version}+${pkgrelease}~${ubu0}"/>
+		<property name="ubu2Build" value="ytdownloader_${version}+${pkgrelease}~${ubu1}"/>
+		<property name="ubu3Build" value="ytdownloader_${version}+${pkgrelease}~${ubu2}"/>		
 		<property name="ubu1Target" value="${stage}/${ubu1Build}"/>
 		<property name="ubu2Target" value="${stage}/${ubu2Build}"/>
 		<property name="ubu3Target" value="${stage}/${ubu3Build}"/>				
@@ -90,7 +90,7 @@
 		<copy todir="${ubu1Target}">
 			<fileset dir="DEB-template"/>
 			<filterset>
-				<filter token="ubu" value="${ubu1}"/>
+				<filter token="ubu" value="${ubu0}"/>
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
@@ -129,7 +129,7 @@
 		<copy todir="${ubu2Target}">
 			<fileset dir="DEB-template"/>
 			<filterset>
-				<filter token="ubu" value="${ubu2}"/>
+				<filter token="ubu" value="${ubu1}"/>
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
@@ -166,7 +166,7 @@
 		<copy todir="${ubu3Target}">
 			<fileset dir="DEB-template"/>
 			<filterset>
-				<filter token="ubu" value="${ubu3}"/>
+				<filter token="ubu" value="${ubu2}"/>
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
