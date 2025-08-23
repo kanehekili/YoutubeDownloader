@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.5.0
+Version 1.5.1
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.5.0/ytdownloader1.5.0.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.5.1/ytdownloader1.5.1.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -61,7 +61,7 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
 * Open terminal and execute "makepkg -s"
 * sudo pacman -U ytdownloader.... 
 
-### Install on Ubuntu 20.04 or Mint 20.X
+### Install on Ubuntu 20.04 or Mint 20.X and upwards
 * (sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 10FA0B428C349916)
 * sudo add-apt-repository ppa:jentiger-moratai/mediatools
 * sudo apt update
@@ -95,6 +95,7 @@ sudo dnf -y install ffmpeg
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 ### Changes
+ * 2025-08 Adapt playlists - replace broken GTK3 spinner
  * 2025-07 Use cookies for Youtube
  * 2024-09 fix youtube change for playlists 
  * 2024-04 yt-dlp delivered for arch, make it selectable

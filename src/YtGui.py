@@ -213,6 +213,15 @@ class YtWindow(Gtk.Window):
             self.update.set_sensitive(True)    
             self.switcher.set_active(True)
             YtModel.YOUTUBE_DL =YtModel.INTRINSIC_YT_PATH
+
+    def _cursorBusy(self):
+        watch_cursor = Gdk.Cursor(Gdk.CursorType.WATCH)
+        self.get_window().set_cursor(watch_cursor)
+    
+    def _cursorDefault(self):
+        watch_cursor = Gdk.Cursor(Gdk.CursorType.ARROW)
+        self.get_window().set_cursor(watch_cursor)
+    
     
     def onSwitchBackend(self, widget):
         mode = widget.get_active()  # (GIT if pressed, Distro if not)
@@ -245,7 +254,7 @@ class YtWindow(Gtk.Window):
 
     def on_Startup(self, widget, data):
         GLib.idle_add(self.buttonInterrupt.hide)
-        self.spinner.hide()   
+        self.spinner.hide()
         if not self.model.hasValidLibrary(): 
             self._showError(_t("NO_DL"))
 
@@ -259,6 +268,7 @@ class YtWindow(Gtk.Window):
             self.currentProc.interrupt()
 
     def _longOperationStart(self):
+        print("start long OP")
         self.should_abort = False
         self.buttonCanx.set_sensitive(False)
         # morph a button
@@ -269,11 +279,14 @@ class YtWindow(Gtk.Window):
             self.buttonInterrupt.show()
         self.spinner.show()
         self.spinner.start()
+        self._cursorBusy()
         self.clearStatus()
                 
     def _longOperationDone(self):
+        print("end long OP")
         self.spinner.stop()
         self.spinner.hide()
+        self._cursorDefault()
         # morph a button
         if self.currentProc is not None:
             self.buttonInterrupt.hide()
@@ -896,7 +909,7 @@ class YTInfo():
             # result from YtModel
             #splitUrl = self.target.split("playlist")  # url and list/id
             splitUrl = self.target.split("list")  # url and list/id
-            isList = len(splitUrl) > 1 
+            isList = len(splitUrl) > 1
             lines = res.result
             titles = []
             for entry in lines:
@@ -904,15 +917,13 @@ class YTInfo():
                 data.append(entry["id"])
                 data.append(entry["title"])
                 if isList:  # makes it only possible for youtube lists...
-                    data.append(splitUrl[0] + "watch?v=" + entry["id"]) 
-                else:
                     if "url" in entry:
                         fullUrl = entry["url"]
                     elif "webpage_url" in entry:
                         fullUrl = entry["webpage_url"]
-                    else:
-                        fullUrl = self.target
-                    data.append(self.target)
+                    self.target=fullUrl
+                        
+                data.append(self.target)
 
                 titles.append(data)
             self.parent.injectRecordList(titles)

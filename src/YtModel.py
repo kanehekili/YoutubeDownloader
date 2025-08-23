@@ -20,7 +20,7 @@ MODE_VIDEO = "V";
 MODE_AUDIO = "A";
 BACKEND_LOCAL = 1
 BACKEND_DISTRO = 0
-lang = locale.getdefaultlocale()
+lang = locale.getlocale()
 
 # If yt-dlp is present we use the distros one. Our binary will be delivered and can be activated by user 
 INTRINSIC_YT_PATH = "/opt/ytdownloader/yt-dlp"
@@ -396,10 +396,10 @@ yt-dlp -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
 
 
 class Downloader():
-    ISPRESENT = re.compile('.+has already been downloaded')
-    REGEXP = re.compile("([0-9.]+)% of ([ ~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
-    DONE = re.compile('([0-9.]+)% [A-z ]+ ([0-9.]+)(.iB) in ([0-9:]+)')
-    TITLE = re.compile("\[download\] Destination: ([^.]+)+")
+    ISPRESENT = re.compile(r'.+has already been downloaded')
+    REGEXP = re.compile(r"([0-9.]+)% of ([ ~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
+    DONE = re.compile(r'([0-9.]+)% [A-z ]+ ([0-9.]+)(.iB) in ([0-9:]+)')
+    TITLE = re.compile(r"\[download\] Destination: (.+?)(?:\s*\.[^.\/\s]+)$")
     
     def __init__(self, receiver):
         self.client = receiver
@@ -566,16 +566,19 @@ def updateYt():
 
 
 def convert():
-    TITLE = re.compile("\[download\][ Destination:]+ ([A-z 0-9-\w']+)+")
-    TITLE = re.compile("\[download\] Destination: ([A-z 0-9-\w']+[^.]+)+")
-    TITLE = re.compile("\[download\] Destination: ([^.]+)+")
+    TITLE = re.compile(r"\[download\][ Destination:]+ ([A-z 0-9-\w']+)+")
+    TITLE = re.compile(r"\[download\] Destination: ([A-z 0-9-\w']+[^.]+)+")
+    TITLE = re.compile(r"\[download\] Destination: ([^.]+)+")
+    TITLE = re.compile(r"\[download\] Destination: (.+?)(?:\s*\.[^.\/\s]+)$")
+    YTVID = re.compile(r"Extracting URL: .*?watch\?v=([^&\s]+)")
    
-    txt = [0 for x in range(24)]
+    txt = [0 for x in range(25)]
     txt[0] = "[download] De 23$%&/&=)?hfggfdgsdf sdfsdwe3454767565645.mp4"
     txt[1] = "[download] Destination: Pip _ A Short Animated Film-07d2dXHYb94.f137.mp4"
     txt[2] = "[download] Pip _ A Short Animated Film-07d2dXHYb94.mp4 has already been downloaded and merged"
     txt[3] = "[download] Destination: Poko 110 - Bowling For Minus-QwMfiVl4Wm0.f244.webm"
     txt[4] = "[download] Destination: CGI 3D Animated Short - 'Take Me Home' - by Nair Archawattana _ TheCGBros.f137.mp4"
+    txt[24] = "[download] Destination: Mr. Crawly .mp4" 
     
     txt[5] = "[ARDBetaMediathek] magnus-trolljaeger/folge-1-ein-fall-fuer-idioten-s01-e01/ndr-fernsehen: Downloading JSON metadata"
     txt[6] = "[ARDBetaMediathek] 86159550: Downloading m3u8 information"
@@ -596,6 +599,7 @@ def convert():
     txt[21] = "[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 9 of 10)..."
     txt[22] = "[download] Got server HTTP error: HTTP Error 404: Not Found. Retrying fragment 192 (attempt 10 of 10)..."
     txt[23] = "[download] Skipping fragment 192..."
+    txt[24] = "Extracting URL: https://www.youtube.com/watch?v=hnXqk_Hm-Bg"
     
     for index in range(len(txt)):
         line = txt[index]
@@ -607,6 +611,9 @@ def convert():
             print("Raw=", s.group(0), " TITLE:", s.group(1))
             for item in found:
                 print("1:%s" % (item))
+        elif YTVID.search(line):
+            data = YTVID.search(line)
+            print(data.group(1))
         else:
             print("not:", line)
 
