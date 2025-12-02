@@ -8,7 +8,7 @@ Standards-Version: 1.4.0
 
 
 Architecture: all
-Depends: ffmpeg, gir1.2-gtk-3.0, python3-gi, ${shlibs:Depends}, ${misc:Depends}
+Depends: ffmpeg, gir1.2-gtk-3.0, python3-gi, quickjs,${shlibs:Depends}, ${misc:Depends}
 Description: GTK GUI for downloading videos - yt-dlp
 Section: video
 Package: ytdownloader

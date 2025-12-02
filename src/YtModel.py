@@ -13,7 +13,8 @@ from urllib.parse import urlparse
 import json 
 import re
 import time
-from datetime import timedelta
+from datetime import timedelta,datetime
+import sys
 
 # import threading
 MODE_VIDEO = "V";
@@ -69,6 +70,7 @@ if "en" in lang[0]:
     TEXT_MAP["TIP_BTN_OK"] = "Start Download"
     TEXT_MAP["TIP_BTN_CANX"] = "Exit"
     TEXT_MAP["TIP_BTN_DEL"] = "Remove entry"
+    TEXT_MAP["TIP_GROUP_LOAD"] = "Green = Single video,Orange = Playlist (slow!)"
     TEXT_MAP["LIST_LOADED"] = "List loaded"
     TEXT_MAP["LIST_SAVED"] = "List saved"
     TEXT_MAP["SETTINGS_DLG"] = "Settings dialog"
@@ -124,6 +126,7 @@ elif "de" in lang[0]:
     TEXT_MAP["TIP_BTN_OK"] = "Download starten"
     TEXT_MAP["TIP_BTN_CANX"] = "Beenden"
     TEXT_MAP["TIP_BTN_DEL"] = "Eintrag löschen"
+    TEXT_MAP["TIP_GROUP_LOAD"] = "Grün = Einzel Video,Orange = Playlist (dauert!)"    
     TEXT_MAP["LIST_LOADED"] = "Liste geladen"
     TEXT_MAP["LIST_SAVED"] = "Liste gespeichert"
     TEXT_MAP["SETTINGS_DLG"] = "Einstellungen"
@@ -202,6 +205,7 @@ class Model():
         self.text = TEXT_MAP
         self.config = ConfigAccessor("YtDownloader.ini")
         self._assureConfig()
+        self.groupLoad = False #Yt hack of playlists
     
     # def isManualYT(self):
     #    return os.path.isfile(INTRINSIC_YT_PATH)
@@ -325,7 +329,6 @@ def convertURL(rawData):
 
 
 # throws exception..
-import sys
 
 
 def executeAsync(cmd, commander, targetDir):
@@ -398,7 +401,16 @@ yt-dlp -f bestvideo+bestaudio https://www.youtube.com/watch?v=Xj3gU3jACe8
 class Downloader():
     ISPRESENT = re.compile(r'.+has already been downloaded')
     REGEXP = re.compile(r"([0-9.]+)% of ([ ~]*[0-9.]+.iB) at *([A-z]+|[0-9.]+.iB/s)")
-    DONE = re.compile(r'([0-9.]+)% [A-z ]+ ([0-9.]+)(.iB) in ([0-9:]+)')
+    DONE_TEST = re.compile(r'([0-9.]+)% [A-z ]+ ([0-9.]+)(.iB) in ([0-9:]+)')
+    DONEWITHSPEED = re.compile(r'\[download\]\s+([0-9.]+%)\s+of\s+' 
+                       r'([0-9.]+)(KiB|MiB|GiB|TiB)\s+' 
+                       r'in\s+([0-9:]+)\s+at\s+' 
+                       r'([0-9.]+)((?:KiB|MiB|GiB|TiB)/s)' )
+    DONE = re.compile(r'\[download\]\s+([0-9.]+%)\s+of\s+'
+                      r'([0-9.]+)(KiB|MiB|GiB|TiB)\s+'
+                      r'in\s+([0-9:]+)'
+)
+    
     TITLE = re.compile(r"\[download\] Destination: (.+?)(?:\s*\.[^.\/\s]+)$")
     
     def __init__(self, receiver):
@@ -470,15 +482,31 @@ class Downloader():
                 else:
                     m = self.DONE.search(line)
                     if m is not None:
+                        ''' DONE:
                         proz = m.group(1)
                         size1 = m.group(2)
                         unit = m.group(3)
                         dur = m.group(4)
+                        '''
+                        proz = m.group(1)
+                        size1 = m.group(2)
+                        unit = m.group(3)
+                        dur = m.group(4)
+                        #speed = m.group(5)
+                        #sUnit= m.group(6)
                         self.downloadSize += float(size1)
-                        dm = dur.split(':')
-                        td = timedelta(minutes=int(int(dm[0])), seconds=int(dm[1]))
+                        #need to add up audio and video time... 
+                        '''
+                        downloadtime: 0:00:00  delta: 0:00:00  line: [download] 100% of   30.56MiB in 00:00:05 at 6.00MiB/s   
+                        <[download] 100% of   30.56MiB in 00:00:05 at 6.00MiB/s
+                        <[download] Destination: 4K Video Sample H.264 (AVC).f258.m4a
+                        downloadtime: 0:00:00  delta: 0:00:00  line: [download] 100% of    1.37MiB in 00:00:00 at 3.23MiB/s   
+                        '''
+                        t = datetime.strptime(dur,"%H:%M:%S")
+                        td = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
                         self.downloadtime += td
-                        self.client.onProgressDone(proz + '% of ' + format(self.downloadSize, '.2f') + unit + " in " + str(self.downloadtime), self.filename)
+                        #self.client.onProgressDone(proz + 'of ' + format(self.downloadSize, '.2f') + unit +" @ "+speed+sUnit, self.filename)
+                        self.client.onProgressDone(f"{proz} of {format(self.downloadSize, '.2f')} {unit} in {self.downloadtime}",self.filename)
                     else:
                         fn = self.TITLE.search(line)
                         if fn is not None:
@@ -500,13 +528,19 @@ class Downloader():
         self.proc = popen
 
 
-def getListInfo(url):
+def getListInfo(url,loadGroup):
     # read url and display list items
     # Not usable while downloading
     if YOUTUBE_DL is None:
         return ProcResult(None, _t("NO_DL"))
-    
-    cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--flat-playlist", url]
+    #we have that startRadio syndrome:
+    refinedURL = url.split('&start_radio')[0]
+    if loadGroup:
+        cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--flat-playlist", refinedURL]
+    else:
+        refinedURL = url.split('&list')[0]
+        cmd = ["python3", YOUTUBE_DL, "-i", "-j","--no-playlist", refinedURL]        
+
     try:
         result = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         form = None

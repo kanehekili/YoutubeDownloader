@@ -4,6 +4,7 @@
     	<property file="build.properties"/>
 		<property name="stage" value="stage"/>
 		<property name="rootDir" value="${stage}/ytdownloader"/>
+		<property name="icons" value="${rootDir}/icons"/>
 		<property name="aurTarget" value="AUR"/>
 		<property name="debTarget" value="DEB"/>
 		<property name="ubu1Build" value="ytdownloader_${version}+${pkgrelease}~${ubu0}"/>
@@ -17,6 +18,7 @@
 		<delete dir="${aurTarget}"/>
 		<delete dir="${debTarget}"/>
 		<mkdir dir="${stage}"/>
+		<mkdir dir="${icons}"/>
 		<mkdir dir="${rootDir}"/>
         <mkdir dir="${aurTarget}"/>
         <mkdir dir="${debTarget}"/>
@@ -25,6 +27,7 @@
 		
 		<property name="source" value="../src"/>
 		<property name="aurSource" value="AUR-template"/>
+		<property name="srcIcons" value="${source}/icons"/>
 		
 		<!-- get currentt yt-dlp via wget or curl -->  
 		<exec dir="." executable="/bin/bash" os="Linux">
@@ -44,6 +47,11 @@
 		<chmod file="${rootDir}/install.sh" perm="ug+rwx"/>
 		<chmod file="${rootDir}/uninstall.sh" perm="ug+rwx"/>
 
+		<copy todir="${icons}">
+			<fileset dir="${srcIcons}">
+			</fileset>
+		</copy>
+
 		<copy todir="${rootDir}">
 			<fileset file="${source}/YtGui.py"/>
 				<filterset>
@@ -54,7 +62,11 @@
 			<fileset dir="${source}" includes="*.png"></fileset>
 			<fileset file="${source}/YtModel.py"/>
 		</copy>		
-
+		
+		<copy todir="${icons}">
+			<fileset dir="${srcIcons}">
+			</fileset>
+		</copy>
 	</target>
 
 	<target name="deploy" depends="build_dir">
@@ -110,7 +122,10 @@
 	   <copy todir="${ubu1Target}/opt">
   		   <fileset file="${source}/*.png"/>
 		</copy>
-		
+		<copy todir="${ubu1Target}/opt/icons">
+			<fileset dir="${srcIcons}">
+			</fileset>
+		</copy>	
 		<copy todir="${ubu1Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
@@ -148,7 +163,10 @@
 		<copy todir="${ubu2Target}/opt">
   		   <fileset file="${source}/*.png"/>
 		</copy>
-		
+		<copy todir="${ubu2Target}/opt/icons">
+			<fileset dir="${srcIcons}">
+			</fileset>
+		</copy>	
 		<copy todir="${ubu2Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
@@ -186,7 +204,10 @@
 	   <copy todir="${ubu3Target}/opt">
   		   <fileset file="${source}/*.png"/>
 		</copy>
-		
+		<copy todir="${ubu3Target}/opt/icons">
+			<fileset dir="${srcIcons}">
+			</fileset>
+		</copy>	
 		<copy todir="${ubu3Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>

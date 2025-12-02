@@ -4,11 +4,11 @@ Created on Oct 25, 2019
 
 @author: matze
 '''
-import gi
-import YtModel
 from YtModel import Downloader
+import YtModel
+import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, Pango
+from gi.repository import Gtk, Gdk, GLib, Pango, GdkPixbuf
 import os
 import threading
 
@@ -16,7 +16,8 @@ TARGET_ENTRY_TEXT = 0
 DRAG_ACTION = Gdk.DragAction.COPY
 TEXT_MAP = None
 VERSION = "@xxxx@"
-
+ICON_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+ICON_SIZE = Gtk.IconSize.LARGE_TOOLBAR  # or LARGE_TOOLBAR
 
 def _t(s):
     if not s in TEXT_MAP:
@@ -26,10 +27,6 @@ def _t(s):
 
 
 class YtWindow(Gtk.Window):
-    '''
-    classdocs
-    '''
-
     def __init__(self, model):
         '''
         Constructor
@@ -44,8 +41,7 @@ class YtWindow(Gtk.Window):
         self.currentProc = None
         
     def _initWidgets(self):
-        here = os.path.dirname(os.path.realpath(__file__))
-        self.set_icon_from_file(os.path.join(here, "youtube.png"))
+        self.set_icon_from_file(os.path.join(ICON_DIR, "youtube.png"))
         self.set_default_size(self.model.getScreenX(), self.model.getScreenY())
         toolVbox = self._createToolbar()
         self.list = self._createList()
@@ -90,6 +86,10 @@ class YtWindow(Gtk.Window):
             self.switcher.connect('toggled', self.onSwitchBackend)
         else:
             self.switcher = None
+        grpLoad = Gtk.ToggleToolButton()
+        grpLoad.set_icon_widget(self._makeIcon("SingleLoad.png"))
+        grpLoad.set_tooltip_text(_t("TIP_GROUP_LOAD"))
+        grpLoad.connect("clicked", self.onGroupLoad)
             
         dd = Gtk.ComboBoxText()
         dd.append_text(_t("COMBO_VIDEO"))
@@ -110,7 +110,8 @@ class YtWindow(Gtk.Window):
             toolbar.insert(self.switcher, 5)    
         toolbar.insert(sep, 6)
         toolbar.child_set(sep, expand=True);
-        toolbar.insert(combo, 7)
+        toolbar.insert(grpLoad, 7)
+        toolbar.insert(combo, 8)
 
         vbox = Gtk.VBox(expand=False, spacing=2)
         vbox.pack_start(toolbar, False, False, 0)
@@ -163,6 +164,18 @@ class YtWindow(Gtk.Window):
         swH.connect("drag-data-received", self.on_drag_data_received)
         return swH
     
+    def _makeIcon(self,filename):
+        """Load and scale an icon for toolbar buttons."""
+        ok, width, height = Gtk.IconSize.lookup(ICON_SIZE)
+        if not ok:
+            width, height = 16, 16  # fallback
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(ICON_DIR, filename))
+        scaled = pixbuf.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
+        img = Gtk.Image.new_from_pixbuf(scaled)
+        img.show()
+        return img
+    
+
     def define_url_targets(self):
         self.list.drag_dest_set(Gtk.DestDefaults.ALL, [], DRAG_ACTION)
         self.list.drag_dest_set_target_list(None)
@@ -235,6 +248,15 @@ class YtWindow(Gtk.Window):
             self.update.set_sensitive(False)
             YtModel.YOUTUBE_DL =YtModel.DISTRO_DL
             self.model.setYtBackend(YtModel.BACKEND_DISTRO)
+     
+    def onGroupLoad(self,widget):
+        mode = widget.get_active() #Playlist if pressed - default is not
+        if mode:
+            widget.set_icon_widget(self._makeIcon("MultiLoad.png"))
+        else:
+            widget.set_icon_widget(self._makeIcon("SingleLoad.png"))
+        self.model.groupLoad=mode
+            
             
     def showStatus(self, text):
         self.statusField.set_label(text) 
@@ -342,20 +364,13 @@ class YtWindow(Gtk.Window):
         return GLib.SOURCE_REMOVE
     
     def updateTitle(self, aiter, text):
-        self.fileStore.set_value(aiter, 1, text)
+        self.fileStore.set_value(aiter, 1, text.split('.')[0]) #remove tech .fxxx data
         return GLib.SOURCE_REMOVE    
     
     def injectStatus(self, aniter, aFloat):
         self.fileStore.set_value(aniter, 2, aFloat)
         return GLib.SOURCE_REMOVE
-    
-    '''
-    def _calculateSelection(self):
-        parent = None
-        n = self.fileStore.iter_n_children( parent )
-        result = n and self.fileStore.iter_nth_child( parent, n - 1 )
-    '''
-    
+   
     def on_selected(self, selection):
         (model, paths) = selection.get_selected_rows()
         hasItems = len(self.fileStore) != 0
@@ -422,7 +437,9 @@ class YtWindow(Gtk.Window):
         
         for root, dirs, files in os.walk(target):
             for name in files:
+                print("DBLE:",fn," in:",name)
                 if fn in name:
+                    print("play")
                     YtModel.play(root, name)
                     break
         return True
@@ -900,7 +917,7 @@ class YTInfo():
          
     def run(self):
         # push into #processResults
-        return YtModel.getListInfo(self.target)
+        return YtModel.getListInfo(self.target,self.parent.model.groupLoad)
      
     def processResult(self, res):
         if res.hasError() and res.result is None:
@@ -941,10 +958,13 @@ class YTInfo():
 
     
 def start():
+    # Set WM_CLASS for the window
+    GLib.set_prgname("VideoDownloader")
     model = YtModel.Model()
     global TEXT_MAP
     TEXT_MAP = model.text
     win = YtWindow(model)
+    win.set_role("VideoDownloader")
     win.connect("destroy", Gtk.main_quit)
     win.show_all()
     Gtk.main()

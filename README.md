@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.5.1
+Version 1.6.0
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.5.1/ytdownloader1.5.1.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.0/ytdownloader1.6.0.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -30,6 +30,8 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 
 * Can also be started via terminal with "ytgui"
 
+* Switch between single and palylist download
+
 * Update the "yt-dl" backend by using the "circle" icon. This will check if a newer version is available - regardless if your DE provides its own binary.
 
 ### Settings
@@ -53,6 +55,7 @@ If yt-dl is provided by your distro, you may not need to update it. However a lo
   * python3
   * python3-gi (debian) or python-gobject (Arch)
   * ffmpeg
+  * js Framework, like nodejs, deno or quickjs
 
 
 ### Install on Arch or Manjaro
@@ -95,6 +98,7 @@ sudo dnf -y install ffmpeg
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 ### Changes
+ * 2025-12 Added JS as dependency, select if single file or playlist should be downloaded
  * 2025-08 Adapt playlists - replace broken GTK3 spinner
  * 2025-07 Use cookies for Youtube
  * 2024-09 fix youtube change for playlists 
