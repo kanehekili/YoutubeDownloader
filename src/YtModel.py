@@ -355,9 +355,8 @@ def executeAsync(cmd, commander, targetDir):
 def cropError(errorText):
     if errorText is None:
         return 
-    # text= error.replace('"','*')
     text = errorText.split('. ') 
-    text = text[0].split(";")
+    text = text[-1].split(";")
     return text[0]
 
 
@@ -440,6 +439,8 @@ class Downloader():
                 cmd = self.MKV
             else:
                 cmd = self.ANY
+        if 'youtube.com' in url or 'youtu.be' in url:
+            cmd = cmd + ['--extractor-args', 'youtube:player_client=web_embedded,web,tv']
         #cookie hack: https://www.reddit.com/r/youtubedl/comments/1kezfg1/problems_with_ytdlp_on_yt/
         if browser:
             cookie = ["--cookies-from-browser",browser,url]
@@ -464,7 +465,9 @@ class Downloader():
         except Exception as error:
             self.res.error = errorToText(error)
         self.proc = None
-        return self.res   
+        if not self.res.hasError():
+            self.client.onProgressDone("Done", self.filename)
+        return self.res
     
     def parseAndDispatch(self, line, showProgress):
         try: 
@@ -508,9 +511,14 @@ class Downloader():
                         #self.client.onProgressDone(proz + 'of ' + format(self.downloadSize, '.2f') + unit +" @ "+speed+sUnit, self.filename)
                         self.client.onProgressDone(f"{proz} of {format(self.downloadSize, '.2f')} {unit} in {self.downloadtime}",self.filename)
                     else:
-                        fn = self.TITLE.search(line)
-                        if fn is not None:
-                            self.filename = fn.group(1)
+                        if '[ExtractAudio]' in line:
+                            self.client.onProgress(100, "Extracting audio...")
+                        elif '[Merger]' in line:
+                            self.client.onProgress(100, "Merging video and audio.")
+                        else:
+                            fn = self.TITLE.search(line)
+                            if fn is not None:
+                                self.filename = fn.group(1)
                 print ("<" + line.rstrip())  
                 if "ERROR" in line:
                     print("error:%s" % (line));  # TODO
@@ -539,8 +547,12 @@ def getListInfo(url,loadGroup):
         cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--flat-playlist", refinedURL]
     else:
         refinedURL = url.split('&list')[0]
-        cmd = ["python3", YOUTUBE_DL, "-i", "-j","--no-playlist", refinedURL]        
+        cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--no-playlist"]
+        if 'youtube.com' in refinedURL or 'youtu.be' in refinedURL:
+            cmd += ['--extractor-args', 'youtube:player_client=web_embedded,web,tv']
+        cmd.append(refinedURL)
 
+    print("listcmd:",cmd)
     try:
         result = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         form = None
@@ -554,7 +566,7 @@ def getListInfo(url,loadGroup):
             resArray = []
             for line in entries:
                 resArray.append(json.loads(line))  # is a map
-        return ProcResult(resArray, form)
+        return ProcResult(resArray, form if resArray is None else None)
     except Exception as error:
         form = errorToText(error)
         return ProcResult(None, form)

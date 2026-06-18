@@ -23,7 +23,8 @@
         <mkdir dir="${aurTarget}"/>
         <mkdir dir="${debTarget}"/>
 		<mkdir dir="${ubu1Target}"/>
-		<mkdir dir="${ubu2Target}"/>        
+		<mkdir dir="${ubu2Target}"/>
+		<mkdir dir="${ubu3Target}"/>
 		
 		<property name="source" value="../src"/>
 		<property name="aurSource" value="AUR-template"/>

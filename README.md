@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.6.0
+Version 1.6.1
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.0/ytdownloader1.6.0.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.1/ytdownloader1.6.1.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -64,7 +64,7 @@ Search for "ytdownloader" in pamac, yay or on AUR. If done by hand:
 * Open terminal and execute "makepkg -s"
 * sudo pacman -U ytdownloader.... 
 
-### Install on Ubuntu 20.04 or Mint 20.X and upwards
+### Install on Ubuntu 24.04 (Noble) or newer and Linux Mint equivalents
 * (sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 10FA0B428C349916)
 * sudo add-apt-repository ppa:jentiger-moratai/mediatools
 * sudo apt update
@@ -85,19 +85,23 @@ sudo pacman -Syu python-gobject ffmpeg
 ```
 
 ### Prepare manual install on Fedora
+Fedora does not ship `ffmpeg` in its default repositories due to patent restrictions. The first command adds RPM Fusion, a third-party repository that provides it.
 ```
-sudo dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-sudo dnf -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-sudo dnf -y install ffmpeg
+sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf install ffmpeg
 ```
 
 ### How to install(Manual)
-* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.4.5/YtDownloader1.4.5.tar)
+* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.1/ytdownloader1.6.1.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 ### Changes
+ * 2026-06 Fixed YouTube downloads with updated player client arguments (web_embedded, web, tv)
+ * 2026-06 Improved download status messages: "Merging video and audio", "Extracting audio", "Done"
+ * 2026-06 Fixed misleading yt-dlp warning URL appearing in status bar
+ * 2026-06 Fixed GTK deprecation warning for context menu items
  * 2025-12 Added JS as dependency, select if single file or playlist should be downloaded
  * 2025-08 Adapt playlists - replace broken GTK3 spinner
  * 2025-07 Use cookies for Youtube
