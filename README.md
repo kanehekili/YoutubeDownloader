@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.6.1
+Version 1.6.2
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.1/ytdownloader1.6.1.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.2/ytdownloader1.6.2.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -92,12 +92,13 @@ sudo dnf install ffmpeg
 ```
 
 ### How to install(Manual)
-* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.1/ytdownloader1.6.1.tar)
+* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.2/ytdownloader1.6.2.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 ### Changes
+ * 2026-07 Show postprocessing (merging/extracting) status and a final "all done" message in the status bar
  * 2026-06 Fixed YouTube downloads with updated player client arguments (web_embedded, web, tv)
  * 2026-06 Improved download status messages: "Merging video and audio", "Extracting audio", "Done"
  * 2026-06 Fixed misleading yt-dlp warning URL appearing in status bar

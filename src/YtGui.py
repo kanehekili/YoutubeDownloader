@@ -904,6 +904,8 @@ class YTDownloader():
         self.parent._longOperationDone()
         if res is not None:
             self.parent._showError(res)
+        else:
+            self.parent.showStatus(_t("STATUS_ALL_DONE"))
         return GLib.SOURCE_REMOVE
     
     def __clearEvents(self):

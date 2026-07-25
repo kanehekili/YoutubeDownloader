@@ -88,6 +88,10 @@ if "en" in lang[0]:
     TEXT_MAP["NO_DL"] = "Could not find yt-dlp. It should be in \n /usr/bin"
     TEXT_MAP["STATUS_INTERRUPT"] = "Process interrupted"
     TEXT_MAP["ALREADY_THERE"] = "File already downloaded"
+    TEXT_MAP["STATUS_EXTRACTING"] = "Extracting audio..."
+    TEXT_MAP["STATUS_MERGING"] = "Merging video and audio..."
+    TEXT_MAP["STATUS_FILE_DONE"] = "Done"
+    TEXT_MAP["STATUS_ALL_DONE"] = "All downloads completed"
     TEXT_MAP["DISTRO_YT"] = "Switch between the latest GIT(pressed) or distro yt-dlp"
     TEXT_MAP["DL_BROWSER_TITLE"] = "Select browser for cookies"
     TEXT_MAP["DL_BROWER_TIP"] = "You need to sign into Youtube. Select which browser has the cookie"
@@ -144,6 +148,10 @@ elif "de" in lang[0]:
     TEXT_MAP["NO_DL"] = "yt-dlp nicht gefunden. Sollte in\n /usr/bin sein"
     TEXT_MAP["STATUS_INTERRUPT"] = "Download abgebrochen"
     TEXT_MAP["ALREADY_THERE"] = "Datei schon geladen"
+    TEXT_MAP["STATUS_EXTRACTING"] = "Extrahiere Audio..."
+    TEXT_MAP["STATUS_MERGING"] = "Führe Video und Audio zusammen..."
+    TEXT_MAP["STATUS_FILE_DONE"] = "Fertig"
+    TEXT_MAP["STATUS_ALL_DONE"] = "Alle Downloads abgeschlossen"
     TEXT_MAP["DISTRO_YT"] = "Yt-dlp als GIT Version(gedrückt) oder Distro Version nutzen"  
     TEXT_MAP["DL_BROWSER_TITLE"] = "Brauser Auswahl für cookies"
     TEXT_MAP["DL_BROWER_TIP"] = "Youtube erwartet, das man eingeloggt ist. Wähle Deinen Brauser aus"
@@ -415,7 +423,7 @@ class Downloader():
     def __init__(self, receiver):
         self.client = receiver
         self.proc = None
-        self.res = ProcResult(res="Done")
+        self.res = ProcResult(res=_t("STATUS_FILE_DONE"))
         self.downloadtime = timedelta(minutes=0)
         self.downloadSize = 0.0
         self.filename = None
@@ -466,7 +474,7 @@ class Downloader():
             self.res.error = errorToText(error)
         self.proc = None
         if not self.res.hasError():
-            self.client.onProgressDone("Done", self.filename)
+            self.client.onProgressDone(_t("STATUS_FILE_DONE"), self.filename)
         return self.res
     
     def parseAndDispatch(self, line, showProgress):
@@ -512,9 +520,9 @@ class Downloader():
                         self.client.onProgressDone(f"{proz} of {format(self.downloadSize, '.2f')} {unit} in {self.downloadtime}",self.filename)
                     else:
                         if '[ExtractAudio]' in line:
-                            self.client.onProgress(100, "Extracting audio...")
+                            self.client.onProgress(100, _t("STATUS_EXTRACTING"))
                         elif '[Merger]' in line:
-                            self.client.onProgress(100, "Merging video and audio.")
+                            self.client.onProgress(100, _t("STATUS_MERGING"))
                         else:
                             fn = self.TITLE.search(line)
                             if fn is not None:
