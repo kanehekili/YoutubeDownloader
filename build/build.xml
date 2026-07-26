@@ -99,6 +99,9 @@
     	 	<format property="time.stamp" pattern="EEE, d LLL yyyy HH:mm:ss"/>
 		</tstamp>
 
+		<!-- latest changelog entries, plain bullet lines, see changes.txt -->
+		<loadfile property="changes" srcFile="changes.txt"/>
+
 		<!-- DEBBUILD ubu1-->
 		<copy todir="${ubu1Target}">
 			<fileset dir="DEB-template"/>
@@ -107,9 +110,10 @@
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
-			</filterset>			
+				<filter token="changes" value="${changes}"/>
+			</filterset>
 		</copy>
-		
+
 		<mkdir dir="${ubu1Target}/addons"/>
 		<mkdir dir="${ubu1Target}/debian"/>
 		<mkdir dir="${ubu1Target}/opt"/>
@@ -149,8 +153,8 @@
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
-			</filterset>			
-			
+				<filter token="changes" value="${changes}"/>
+			</filterset>
 		</copy>
 		<mkdir dir="${ubu2Target}/addons"/>
 		<mkdir dir="${ubu2Target}/debian"/>
@@ -189,7 +193,8 @@
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 				<filter token="xtsx" value="${time.stamp}"/>
-			</filterset>			
+				<filter token="changes" value="${changes}"/>
+			</filterset>
 		</copy>
 		
 		<mkdir dir="${ubu3Target}/addons"/>
