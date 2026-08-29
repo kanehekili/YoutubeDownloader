@@ -1,1 +1,2 @@
+  * Audio only: choose the target format - mp3 (default), opus or the original stream
   * Show postprocessing (merging/extracting) status and a final "all done" message in the status bar

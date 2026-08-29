@@ -1,9 +1,9 @@
 # YoutubeDownloader
 GTK3 UI for youtube,vimeo and others
 
-Version 1.6.2
+Version 1.6.3
 
-![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.2/ytdownloader1.6.2.tar)
+![Download](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.3/ytdownloader1.6.3.tar)
 
 This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality** audio and video using ffmepg where necessary.
 
@@ -35,7 +35,7 @@ This simple GUI for the youtube-dl runs on linux. Goal was to get **high quality
 * Update the "yt-dl" backend by using the "circle" icon. This will check if a newer version is available - regardless if your DE provides its own binary.
 
 ### Settings
-Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality.
+Clicking the "clogwheel" icon you may set the target directories for video and audio individually as well as the download quality and the audio format.
 
 ![Screenshot](./ytdialog.png)
 
@@ -43,6 +43,11 @@ There are 3 options for video quality:
 * A MP4 container will lead mostly to a good result,but usually not the best
 * MKV container can take literally any codec. Since youtube often uses webm container with vp9 and opus codecs this would be the choice for best quality
 * The "auto" modus will not pass any merge requests to youtube-dl, so depending on the available data either MKV or webm container will be the output. 
+
+There are 3 options for the audio format. They only apply to "Audio only" downloads - youtube stores audio as a separate stream, so no video is downloaded in any of these cases:
+* mp3 is the default and plays on every device. Since youtube delivers opus or aac, ffmpeg has to convert it, which costs a bit of quality
+* opus takes the original opus stream and only repacks it - nothing is re-encoded. Best quality at the smallest size, but plain mp3 players (mpg123 for example) cannot read it
+* The "original" modus does not convert at all and keeps whatever youtube delivers, either a m4a or a webm file. ffmpeg is not needed here
 
 Select the browser for downloading - Youtube enforces this.
 * Youtube will hinder you - select the browser which you are using while dragging. Be sure that you are "logged in to youtube" - otherwise you will not be able to download.
@@ -92,12 +97,13 @@ sudo dnf install ffmpeg
 ```
 
 ### How to install(Manual)
-* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.2/ytdownloader1.6.2.tar)
+* Download the current YtDownloader*.tar ![here](https://github.com/kanehekili/YoutubeDownloader/releases/download/1.6.3/ytdownloader1.6.3.tar)
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
 
 ### Changes
+ * 2026-08 Audio only: choose the target format - mp3 (default), opus or the original stream
  * 2026-07 Show postprocessing (merging/extracting) status and a final "all done" message in the status bar
  * 2026-06 Fixed YouTube downloads with updated player client arguments (web_embedded, web, tv)
  * 2026-06 Improved download status messages: "Merging video and audio", "Extracting audio", "Done"

@@ -595,10 +595,12 @@ class YtWindow(Gtk.Window):
             v = dialog.getVideoPath()
             a = dialog.getAudioPath()
             f = dialog.getFormat()
+            af = dialog.getAudioFormat()
             b = dialog.getBrowser()
             self.model.setVideoPath(v)
             self.model.setMusicPath(a)
             self.model.setFormat(f)
+            self.model.setAudioFormat(af)
             self.model.setBrowser(b)
         dialog.destroy() 
 
@@ -673,7 +675,33 @@ class SettingsDialog(Gtk.Dialog):
         rbmkv.connect("toggled", self._on_button_toggled, "1")
         rbany = Gtk.RadioButton.new_with_label_from_widget(rbmp4, _t("SEL_ANY"))
         rbany.connect("toggled", self._on_button_toggled, "2")
-        
+
+        # audio format - only used for "Audio only" downloads
+        audioFmtBox = Gtk.VBox()
+        audioFmtSettings = Gtk.Frame()
+        audioFmtSettings.set_margin_top(10)
+        audioFmtSettings.set_label(_t("DL_AUDIO_TITLE"))
+        audioFmtSettings.add(audioFmtBox)
+
+        rbmp3 = Gtk.RadioButton.new_with_label_from_widget(None, _t("SEL_MP3"))
+        rbmp3.connect("toggled", self._on_audio_button_toggled, "0")
+        rbopus = Gtk.RadioButton.new_with_label_from_widget(rbmp3, _t("SEL_OPUS"))
+        rbopus.connect("toggled", self._on_audio_button_toggled, "1")
+        rborig = Gtk.RadioButton.new_with_label_from_widget(rbmp3, _t("SEL_ORIGINAL"))
+        rborig.connect("toggled", self._on_audio_button_toggled, "2")
+
+        self.audioFormat = self.parent.model.getAudioFormat()
+        aindx = self.parent.model.AUDIO_FORMATS.index(self.audioFormat)
+        if aindx == 1:
+            rbopus.set_active(True)
+        elif aindx == 2:
+            rborig.set_active(True)
+        else:
+            rbmp3.set_active(True)
+        audioFmtBox.pack_start(rbmp3, False, False, 3)
+        audioFmtBox.pack_start(rbopus, False, False, 3)
+        audioFmtBox.pack_start(rborig, False, False, 3)
+
         #add browser choice
         brauseBox = Gtk.VBox()
         brauseBox.set_border_width(5)
@@ -717,7 +745,7 @@ class SettingsDialog(Gtk.Dialog):
         versBox.pack_start(lbl, False, False, 2)
         
         lbl = Gtk.Label()
-        lbl.set_markup('<span size="small">Copyright (c) 2019-24 Kanehekili</span>')
+        lbl.set_markup('<span size="small">Copyright (c) 2019-26 Kanehekili</span>')
         versBox.pack_start(lbl, False, False, 2)
         
         box = self.get_content_area()
@@ -725,6 +753,7 @@ class SettingsDialog(Gtk.Dialog):
         box.add(headBox)
         box.add(gtkdummyBox)
         box.add(loadSettings)
+        box.add(audioFmtSettings)
         box.add(brauseSettings)
         box.add(versBox)
 
@@ -763,6 +792,11 @@ class SettingsDialog(Gtk.Dialog):
             indx = int(idx)
             self.format = self.parent.model.FORMATS[indx]
 
+    def _on_audio_button_toggled(self, widget, idx):
+        if widget.get_active():
+            indx = int(idx)
+            self.audioFormat = self.parent.model.AUDIO_FORMATS[indx]
+
     def getVideoPath(self):
         return self.ventry.get_text()
     
@@ -771,7 +805,10 @@ class SettingsDialog(Gtk.Dialog):
 
     def getFormat(self):
         return self.format
-    
+
+    def getAudioFormat(self):
+        return self.audioFormat
+
     def getBrowser(self):
         return self.browserChoice.get_active_text()
 
@@ -847,8 +884,9 @@ class YTDownloader():
             aiter = fs.get_iter(self.treeRows[0])
             currIndex = 0
         
-        quality = self.parent.model.getFormat()  
-        browser = self.parent.model.getBrowser() 
+        quality = self.parent.model.getFormat()
+        audioFormat = self.parent.model.getAudioFormat()
+        browser = self.parent.model.getBrowser()
 
         self.proc = Downloader(self)
         while (aiter != None and self.proc is not None):
@@ -858,7 +896,7 @@ class YTDownloader():
                 
                 self.onProgress(0.0, "0.0KiB")
                 url = fs.get_value (aiter, 4)
-                res = self.proc.download(url, mode, quality,browser, targetDir)
+                res = self.proc.download(url, mode, quality,browser, targetDir, audioFormat)
                 if res.hasError():
                     return res.error
             if currIndex == -1:

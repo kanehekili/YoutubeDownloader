@@ -85,10 +85,14 @@ if "en" in lang[0]:
     TEXT_MAP["SEL_MP4"] = "Good quality with mp4"
     TEXT_MAP["SEL_MKV"] = "Highest quality with mkv"
     TEXT_MAP["SEL_ANY"] = "Highest quality auto container"
+    TEXT_MAP["DL_AUDIO_TITLE"] = "Audio format (Audio only)"
+    TEXT_MAP["SEL_MP3"] = "mp3 - plays on every device"
+    TEXT_MAP["SEL_OPUS"] = "opus - best quality, small files"
+    TEXT_MAP["SEL_ORIGINAL"] = "original - no conversion (m4a or webm)"
     TEXT_MAP["NO_DL"] = "Could not find yt-dlp. It should be in \n /usr/bin"
     TEXT_MAP["STATUS_INTERRUPT"] = "Process interrupted"
     TEXT_MAP["ALREADY_THERE"] = "File already downloaded"
-    TEXT_MAP["STATUS_EXTRACTING"] = "Extracting audio..."
+    TEXT_MAP["STATUS_CONVERTING"] = "Converting audio..."
     TEXT_MAP["STATUS_MERGING"] = "Merging video and audio..."
     TEXT_MAP["STATUS_FILE_DONE"] = "Done"
     TEXT_MAP["STATUS_ALL_DONE"] = "All downloads completed"
@@ -145,10 +149,14 @@ elif "de" in lang[0]:
     TEXT_MAP["SEL_MP4"] = "Gute Qualität im mp4 Format"
     TEXT_MAP["SEL_MKV"] = "Sehr gute Qualität im mkv Format"
     TEXT_MAP["SEL_ANY"] = "Sehr gute Qualität im beliebigen Format"
+    TEXT_MAP["DL_AUDIO_TITLE"] = "Audio Format (nur Audio)"
+    TEXT_MAP["SEL_MP3"] = "mp3 - läuft auf jedem Gerät"
+    TEXT_MAP["SEL_OPUS"] = "opus - beste Qualität, kleine Dateien"
+    TEXT_MAP["SEL_ORIGINAL"] = "Original - keine Umwandlung (m4a oder webm)"
     TEXT_MAP["NO_DL"] = "yt-dlp nicht gefunden. Sollte in\n /usr/bin sein"
     TEXT_MAP["STATUS_INTERRUPT"] = "Download abgebrochen"
     TEXT_MAP["ALREADY_THERE"] = "Datei schon geladen"
-    TEXT_MAP["STATUS_EXTRACTING"] = "Extrahiere Audio..."
+    TEXT_MAP["STATUS_CONVERTING"] = "Konvertiere Audio..."
     TEXT_MAP["STATUS_MERGING"] = "Führe Video und Audio zusammen..."
     TEXT_MAP["STATUS_FILE_DONE"] = "Fertig"
     TEXT_MAP["STATUS_ALL_DONE"] = "Alle Downloads abgeschlossen"
@@ -207,6 +215,8 @@ class ConfigAccessor():
 
 class Model():
     FORMATS = ["mp4", "mkv", "any"]
+    AUDIO_FORMATS = ["mp3", "opus", "original"]
+    AUDIO_DEFAULT = "mp3"
     BRAUSER_DEFAULT="firefox";
 
     def __init__(self):
@@ -242,6 +252,7 @@ class Model():
             self.config.add("DOWNLOAD_TYPE", MODE_VIDEO)  # video or audio
             self.config.add("URLList", json.dumps([]))
             self.config.add("FORMAT", self.FORMATS[0])
+            self.config.add("AUDIO_FORMAT", self.AUDIO_DEFAULT)
     
     def getScreenX(self):
         return self.config.getInt("SCREENX")
@@ -312,8 +323,18 @@ class Model():
         self.config.add("FORMAT", aString)
 
     def getFormat(self):
-        return self.config.get("FORMAT")        
-    
+        return self.config.get("FORMAT")
+
+    def setAudioFormat(self, aString):
+        self.config.add("AUDIO_FORMAT", aString)
+
+    def getAudioFormat(self):
+        # missing in ini files written before this setting existed -> stay on mp3
+        af = self.config.get("AUDIO_FORMAT")
+        if af not in self.AUDIO_FORMATS:
+            af = self.AUDIO_DEFAULT
+        return af
+
     def hasValidLibrary(self):
         return YOUTUBE_DL is not None
     
@@ -394,8 +415,17 @@ onProgress(percent(float), size with units (str), speed with units (str)
 best video & audio for mp4
 yt-dlp -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio --merge-output-format mp4 https://www.youtube.com/watch?v=Xj3gU3jACe8
 
-bestaudio:
-yt-dlp -f bestaudio --extract-audio --audio-quality 0 --audio-format mp3
+audio only. Youtube serves audio as a separate stream, so "bestaudio" alone already
+downloads audio only (.m4a or .webm/Opus) - no video is fetched in any of these:
+
+mp3 (default, plays everywhere - ffmpeg re-encodes Opus/AAC to mp3):
+yt-dlp -f bestaudio/best --extract-audio --audio-quality 0 --audio-format mp3
+
+opus (native webm stream, ffmpeg only repacks it - no re-encoding, no quality loss):
+yt-dlp -f bestaudio[acodec=opus]/bestaudio/best --extract-audio --audio-format opus
+
+original (no conversion at all, ffmpeg not needed. Gives .m4a or .webm):
+yt-dlp -f bestaudio/best
 
 very best only (trick=mkv)
 yt-dlp -f bestvideo+bestaudio --merge-output-format mkv https://www.youtube.com/watch?v=Xj3gU3jACe8
@@ -430,16 +460,26 @@ class Downloader():
         self.MP4 = ["python3", YOUTUBE_DL, "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]", "-o", '%(title)s.%(ext)s', "--merge-output-format", "mp4"]
         self.MKV = ["python3", YOUTUBE_DL, "-f", "bestvideo+bestaudio/best", "-o", '%(title)s.%(ext)s', "--merge-output-format", "mkv"]
         self.ANY = ["python3", YOUTUBE_DL, "-f", "bestvideo+bestaudio/best", "-o", '%(title)s.%(ext)s']
-        self.AUDIO = ["python3", YOUTUBE_DL, "-f", "bestaudio/best", "-o", '%(title)s.%(ext)s', "--extract-audio", "--audio-quality", "0", "--audio-format", "mp3"]
+        self.AUDIO_MP3 = ["python3", YOUTUBE_DL, "-f", "bestaudio/best", "-o", '%(title)s.%(ext)s', "--extract-audio", "--audio-quality", "0", "--audio-format", "mp3"]
+        # acodec=opus picks the native webm stream, so ffmpeg only repacks it into .opus.
+        # plain "bestaudio" would select the higher rated m4a and re-encode aac->opus
+        self.AUDIO_OPUS = ["python3", YOUTUBE_DL, "-f", "bestaudio[acodec=opus]/bestaudio/best", "-o", '%(title)s.%(ext)s', "--extract-audio", "--audio-format", "opus"]
+        self.AUDIO_ORIGINAL = ["python3", YOUTUBE_DL, "-f", "bestaudio/best", "-o", '%(title)s.%(ext)s']
 
 
-    def download(self, url, videomode, quality,browser,targetDir):
+    def download(self, url, videomode, quality,browser,targetDir,audioFormat=None):
         # TODO --transcode-video to mp4?
         if YOUTUBE_DL is None:
             return ProcResult(None, _t("NO_DL"))
 
         if videomode == MODE_AUDIO:
-            cmd = self.AUDIO
+            # audioFormat may be None when called from an older config - mp3 stays the default
+            if audioFormat == Model.AUDIO_FORMATS[1]:
+                cmd = self.AUDIO_OPUS
+            elif audioFormat == Model.AUDIO_FORMATS[2]:
+                cmd = self.AUDIO_ORIGINAL
+            else:
+                cmd = self.AUDIO_MP3
         else:
             if quality == Model.FORMATS[0]:
                 cmd = self.MP4
@@ -519,8 +559,10 @@ class Downloader():
                         #self.client.onProgressDone(proz + 'of ' + format(self.downloadSize, '.2f') + unit +" @ "+speed+sUnit, self.filename)
                         self.client.onProgressDone(f"{proz} of {format(self.downloadSize, '.2f')} {unit} in {self.downloadtime}",self.filename)
                     else:
+                        # yt-dlp names the postprocessor ExtractAudio, but there is no
+                        # video to extract from - it converts the audio codec
                         if '[ExtractAudio]' in line:
-                            self.client.onProgress(100, _t("STATUS_EXTRACTING"))
+                            self.client.onProgress(100, _t("STATUS_CONVERTING"))
                         elif '[Merger]' in line:
                             self.client.onProgress(100, _t("STATUS_MERGING"))
                         else:
