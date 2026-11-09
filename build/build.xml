@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project name="Build YT" default="deploy">
-	<target name="build_dir">
+	<!-- every property in one place, so install_local can stage the app
+	     without dragging in the packaging targets -->
+	<target name="init">
     	<property file="build.properties"/>
 		<property name="stage" value="stage"/>
 		<property name="rootDir" value="${stage}/ytdownloader"/>
@@ -9,39 +11,49 @@
 		<property name="debTarget" value="DEB"/>
 		<property name="ubu1Build" value="ytdownloader_${version}+${pkgrelease}~${ubu0}"/>
 		<property name="ubu2Build" value="ytdownloader_${version}+${pkgrelease}~${ubu1}"/>
-		<property name="ubu3Build" value="ytdownloader_${version}+${pkgrelease}~${ubu2}"/>		
+		<property name="ubu3Build" value="ytdownloader_${version}+${pkgrelease}~${ubu2}"/>
 		<property name="ubu1Target" value="${stage}/${ubu1Build}"/>
 		<property name="ubu2Target" value="${stage}/${ubu2Build}"/>
-		<property name="ubu3Target" value="${stage}/${ubu3Build}"/>				
-		
-		<delete dir="${stage}"/>
-		<delete dir="${aurTarget}"/>
-		<delete dir="${debTarget}"/>
-		<mkdir dir="${stage}"/>
-		<mkdir dir="${icons}"/>
-		<mkdir dir="${rootDir}"/>
-        <mkdir dir="${aurTarget}"/>
-        <mkdir dir="${debTarget}"/>
-		<mkdir dir="${ubu1Target}"/>
-		<mkdir dir="${ubu2Target}"/>
-		<mkdir dir="${ubu3Target}"/>
-		
+		<property name="ubu3Target" value="${stage}/${ubu3Build}"/>
 		<property name="source" value="../src"/>
 		<property name="aurSource" value="AUR-template"/>
 		<property name="srcIcons" value="${source}/icons"/>
-		
-		<!-- get currentt yt-dlp via wget or curl -->  
+		<!-- Shared code, VideoCut holds the master. Deliberately not copied
+		     into our src - it is vendored in here at build time, so it can
+		     never drift apart from VideoCut's. Same as VideoMerge does it. -->
+		<property name="ffmpegTools" value="../../VideoCut/src/FFMPEGTools.py"/>
+		<!-- a fileset matching nothing copies nothing without complaining, so
+		     the package would silently ship without it and die on the user's
+		     machine with an ImportError. Stop here instead. -->
+		<available file="${ffmpegTools}" property="ffmpegTools.present"/>
+		<fail unless="ffmpegTools.present">
+FFMPEGTools.py not found at ${ffmpegTools}
+The shared code lives in VideoCut, which has to be checked out next to this
+project (same parent directory). Nothing can be built without it.
+		</fail>
+	</target>
+
+	<!-- everything that goes into the package, staged in ${rootDir} -->
+	<target name="stage_app" depends="init">
+		<delete dir="${stage}"/>
+		<mkdir dir="${stage}"/>
+		<mkdir dir="${rootDir}"/>
+		<mkdir dir="${icons}"/>
+
+		<!-- get currentt yt-dlp via wget or curl -->
 		<exec dir="." executable="/bin/bash" os="Linux">
 		 <arg value="updateYtdl.sh"/>
 		</exec>
-		
-		
+
+
 		<copy todir="${rootDir}">
 			<fileset file="*.desktop">
 			</fileset>
 			<fileset file="*install*.sh">
 			</fileset>
 			<fileset file="yt-dlp">
+			</fileset>
+			<fileset file="${ffmpegTools}">
 			</fileset>
 		</copy>
 			
@@ -62,12 +74,34 @@
 		<copy todir="${rootDir}">
 			<fileset dir="${source}" includes="*.png"></fileset>
 			<fileset file="${source}/YtModel.py"/>
-		</copy>		
-		
-		<copy todir="${icons}">
-			<fileset dir="${srcIcons}">
-			</fileset>
 		</copy>
+	</target>
+
+	<!-- the staged app plus the empty output dirs the packaging needs -->
+	<target name="build_dir" depends="stage_app">
+		<delete dir="${aurTarget}"/>
+		<delete dir="${debTarget}"/>
+		<mkdir dir="${aurTarget}"/>
+		<mkdir dir="${debTarget}"/>
+		<mkdir dir="${ubu1Target}"/>
+		<mkdir dir="${ubu2Target}"/>
+		<mkdir dir="${ubu3Target}"/>
+	</target>
+
+	<!-- Install the staged build into /opt/ytdownloader for local testing.
+	     Runs the very install.sh that ships in the tar, so what gets tested
+	     is the real install path, not a copy of it. Leaves AUR/ and DEB/
+	     alone - a test install must not eat the release artifacts. -->
+	<target name="install_local" depends="stage_app"
+	        description="install into /opt/ytdownloader for testing (needs root)">
+		<!-- absolute: pkexec resets PATH and does not promise to keep the
+		     working directory -->
+		<property name="rootDirAbs" location="${rootDir}"/>
+		<echo message="installing ${rootDirAbs} into /opt/ytdownloader"/>
+		<exec executable="pkexec" failonerror="true">
+			<arg value="/bin/bash"/>
+			<arg value="${rootDirAbs}/install.sh"/>
+		</exec>
 	</target>
 
 	<target name="deploy" depends="build_dir">
@@ -82,11 +116,11 @@
 		</exec>
 		
 		<!-- PKBUILD -->
-		<checksum file="ytdownloader${version}.tar" property="aurMD5"/>
+		<checksum file="ytdownloader${version}.tar" algorithm="SHA-256" property="aurSHA256"/>
 		<copy todir="${aurTarget}">
 			<fileset file="${aurSource}/*"/>
 			<filterset>
-				<filter token="md5sum" value="${aurMD5}"/>
+				<filter token="sha256sum" value="${aurSHA256}"/>
 				<filter token="xxx" value="${version}"/>
 				<filter token="xpkgrelx" value="${pkgrelease}"/>
 			</filterset>
@@ -126,6 +160,7 @@
 
 	   <copy todir="${ubu1Target}/opt">
   		   <fileset file="${source}/*.png"/>
+		   <fileset file="${rootDir}/FFMPEGTools.py"/>
 		</copy>
 		<copy todir="${ubu1Target}/opt/icons">
 			<fileset dir="${srcIcons}">
@@ -167,6 +202,7 @@
 		</copy>
 		<copy todir="${ubu2Target}/opt">
   		   <fileset file="${source}/*.png"/>
+		   <fileset file="${rootDir}/FFMPEGTools.py"/>
 		</copy>
 		<copy todir="${ubu2Target}/opt/icons">
 			<fileset dir="${srcIcons}">
@@ -209,6 +245,7 @@
 
 	   <copy todir="${ubu3Target}/opt">
   		   <fileset file="${source}/*.png"/>
+		   <fileset file="${rootDir}/FFMPEGTools.py"/>
 		</copy>
 		<copy todir="${ubu3Target}/opt/icons">
 			<fileset dir="${srcIcons}">

@@ -7,11 +7,11 @@
 		<property name="aurSource" value="AUR-template"/>
 		
 		<!-- PKBUILD -->
-		<checksum file="YtDownloader${version}.tar" property="aurMD5"/>
+		<checksum file="YtDownloader${version}.tar" algorithm="SHA-256" property="aurSHA256"/>
 		<copy todir="${aurTarget}">
 			<fileset file="${aurSource}/*"/>
 			<filterset>
-				<filter token="md5sum" value="${aurMD5}"/>
+				<filter token="sha256sum" value="${aurSHA256}"/>
 				<filter token="xxx" value="${version}"/>
 			</filterset>
 		</copy>		

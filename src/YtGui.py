@@ -6,22 +6,25 @@ Created on Oct 25, 2019
 '''
 from YtModel import Downloader
 import YtModel
+import FFMPEGTools
+from FFMPEGTools import Log, OSTools
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Pango, GdkPixbuf
-import os
+import sys
+import getopt
 import threading
 
 TARGET_ENTRY_TEXT = 0
 DRAG_ACTION = Gdk.DragAction.COPY
 TEXT_MAP = None
 VERSION = "@xxxx@"
-ICON_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+ICON_DIR = OSTools().joinPathes(OSTools().getLocalPath(__file__), "icons")
 ICON_SIZE = Gtk.IconSize.LARGE_TOOLBAR  # or LARGE_TOOLBAR
 
 def _t(s):
     if not s in TEXT_MAP:
-        print('TEXT_MAP["%s"]="missing"' % (s))
+        Log.warning('TEXT_MAP["%s"]="missing"', s)
         return s
     return TEXT_MAP[s]
 
@@ -41,7 +44,7 @@ class YtWindow(Gtk.Window):
         self.currentProc = None
         
     def _initWidgets(self):
-        self.set_icon_from_file(os.path.join(ICON_DIR, "youtube.png"))
+        self.set_icon_from_file(OSTools().joinPathes(ICON_DIR, "youtube.png"))
         self.set_default_size(self.model.getScreenX(), self.model.getScreenY())
         toolVbox = self._createToolbar()
         self.list = self._createList()
@@ -169,7 +172,7 @@ class YtWindow(Gtk.Window):
         ok, width, height = Gtk.IconSize.lookup(ICON_SIZE)
         if not ok:
             width, height = 16, 16  # fallback
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(ICON_DIR, filename))
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(OSTools().joinPathes(ICON_DIR, filename))
         scaled = pixbuf.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
         img = Gtk.Image.new_from_pixbuf(scaled)
         img.show()
@@ -180,6 +183,14 @@ class YtWindow(Gtk.Window):
         self.list.drag_dest_set(Gtk.DestDefaults.ALL, [], DRAG_ACTION)
         self.list.drag_dest_set_target_list(None)
         self.list.drag_dest_add_text_targets()
+
+    #unsetting the target is what makes the drag cursor refuse the drop, so the
+    #user sees it before letting go instead of getting an error afterwards
+    def _setDropEnabled(self, enabled):
+        if enabled:
+            self.define_url_targets()
+        else:
+            self.list.drag_dest_unset()
      
     def _createLowerButtonRow(self):
        
@@ -222,10 +233,11 @@ class YtWindow(Gtk.Window):
             self.update.set_sensitive(False)
             self.switcher.set_active(False)
             YtModel.YOUTUBE_DL =YtModel.DISTRO_DL
-        else: 
-            self.update.set_sensitive(True)    
+        else:
+            self.update.set_sensitive(True)
             self.switcher.set_active(True)
             YtModel.YOUTUBE_DL =YtModel.INTRINSIC_YT_PATH
+        Log.info("yt-dlp backend: %s", YtModel.YOUTUBE_DL)
 
     def _cursorBusy(self):
         watch_cursor = Gdk.Cursor(Gdk.CursorType.WATCH)
@@ -248,7 +260,9 @@ class YtWindow(Gtk.Window):
             self.update.set_sensitive(False)
             YtModel.YOUTUBE_DL =YtModel.DISTRO_DL
             self.model.setYtBackend(YtModel.BACKEND_DISTRO)
-     
+        Log.info("Switched yt-dlp backend to: %s", YtModel.YOUTUBE_DL)
+
+
     def onGroupLoad(self,widget):
         mode = widget.get_active() #Playlist if pressed - default is not
         if mode:
@@ -290,13 +304,18 @@ class YtWindow(Gtk.Window):
             self.currentProc.interrupt()
 
     def _longOperationStart(self):
-        print("start long OP")
+        Log.debug("start long OP")
         self.should_abort = False
         self.buttonCanx.set_sensitive(False)
         # morph a button
         if self.currentProc is None:
             self.buttonStart.set_sensitive(False)
-        else: 
+        else:
+            #downloading: a dropped URL would start a second long operation
+            #whose _longOperationDone clears currentProc and leaves the
+            #downloader thread running unattended. A title fetch is short and
+            #harmless, so dropping several URLs in a row stays possible.
+            self._setDropEnabled(False)
             self.buttonStart.hide()
             self.buttonInterrupt.show()
         self.spinner.show()
@@ -305,7 +324,7 @@ class YtWindow(Gtk.Window):
         self.clearStatus()
                 
     def _longOperationDone(self):
-        print("end long OP")
+        Log.debug("end long OP")
         self.spinner.stop()
         self.spinner.hide()
         self._cursorDefault()
@@ -313,11 +332,17 @@ class YtWindow(Gtk.Window):
         if self.currentProc is not None:
             self.buttonInterrupt.hide()
             self.buttonStart.show()
-            self.currentProc = None  
-        self.buttonStart.set_sensitive(True)            
+            self.currentProc = None
+            self._setDropEnabled(True)
+        self.buttonStart.set_sensitive(True)
         self.buttonCanx.set_sensitive(True)
 
     def on_drag_data_received(self, widget, drag_context, x, y, data, info, time):
+        #the target is unset while downloading, but a drag already in flight
+        #when the download started still arrives here
+        if self.currentProc is not None:
+            self.showStatus(_t("STATUS_BUSY_DROP"))
+            return
         if info == TARGET_ENTRY_TEXT:
             rawURL = data.get_data().decode("utf8").rstrip()
             parseResult = YtModel.convertURL(rawURL)
@@ -437,13 +462,13 @@ class YtWindow(Gtk.Window):
         else:
             target = self.model.getMusicPath()
         
-        for root, dirs, files in os.walk(target):
-            for name in files:
-                print("DBLE:",fn," in:",name)
-                if fn in name:
-                    print("play")
-                    YtModel.play(root, name)
-                    break
+        Log.debug("Looking for '%s' in %s", fn, target)
+        found = OSTools().findFiles(target, fn)
+        if found:
+            Log.info("Playing %s", found[0])
+            YtModel.play(found[0])
+        else:
+            Log.info("No file matching '%s' below %s", fn, target)
         return True
 
     def on_List_key_press(self, treeview, event):
@@ -485,18 +510,15 @@ class YtWindow(Gtk.Window):
                 aiter = model.get_iter(item)
                 fn = model[aiter][1]
                 dnwType = model[aiter][3]
-                # print("Searching file:",fn)
                 if dnwType == YtModel.MODE_VIDEO:
                     target = self.model.getVideoPath()
                 else:
                     target = self.model.getMusicPath()
-                for root, dirs, files in os.walk(target):
-                    for name in files:
-                        # print("Walk:",name)
-                        if fn in name:
-                            YtModel.removeFile(root, name)
-                            #print("removed:", root, name)
-                            break
+                #every match goes, not just the first one per folder: a merged
+                #download leaves .fNNN fragments behind that yt-dlp would reuse
+                for path in OSTools().findFiles(target, fn):
+                    Log.info("Force reload - removing %s", path)
+                    YtModel.removeFile(path)
                 rows.append(item)
             self._fetchVideo(rows)
     
@@ -605,15 +627,20 @@ class YtWindow(Gtk.Window):
         dialog.destroy() 
 
 
+    '''
+    pkexec + the download take seconds. Called straight from the handler it
+    blocks the main loop, so neither the wait cursor nor the spinner is ever
+    painted - the window just freezes. Off the main thread like every other
+    long operation, both show up.
+    '''
+
     def on_tool_update(self, widget):
+        self.update.set_sensitive(False)
         self._longOperationStart()
-        res = YtModel.updateYt()
-        if res.hasError():
-            self._showError(res.error)
-            return
-        text = '\n'.join(res.result)
-        self._showMessage(text)
-        self._longOperationDone()
+        self.showStatus(_t("STATUS_UPDATING"))
+        proc = YTUpdater(self)
+        w = WorkerThread(proc.processResult, proc)
+        w.start()
 
 
 class SettingsDialog(Gtk.Dialog):
@@ -994,14 +1021,63 @@ class YTInfo():
     def _handleError(self, result):
         self.parent._longOperationDone()
         self.parent._showError(result)
-     
+
     def interrupt(self):
         pass
 
-    
+
+class YTUpdater():
+    """pkexec yt-dlp -U, off the main thread so the wait cursor is painted"""
+
+    def __init__(self, ytWin):
+        self.parent = ytWin
+
+    def run(self):
+        # push into #processResult
+        return YtModel.updateYt()
+
+    def processResult(self, res):
+        #before the dialogs - the old code returned on error and left the
+        #spinner running and the buttons dead for the rest of the session
+        self.parent._longOperationDone()
+        self.parent.update.set_sensitive(
+            self.parent.model.getYtBackend() == YtModel.BACKEND_LOCAL)
+        if res.hasError():
+            self.parent._showError(res.error)
+        elif res.result:
+            self.parent._showMessage('\n'.join(res.result))
+        return GLib.SOURCE_REMOVE
+
+    def interrupt(self):
+        pass
+
+
+def parseOptions(args):
+    res = {}
+    res["logConsole"] = False
+    try:
+        opts, args = getopt.getopt(args[1:], "cd", ["console", "debug"])
+    except getopt.GetoptError as err:
+        print(err)
+        sys.exit(2)
+
+    for o, a in opts:
+        if o in ("-d", "--debug"):
+            FFMPEGTools.setLogLevel("Debug")
+        elif o in ("-c", "--console"):
+            res["logConsole"] = True
+        else:
+            print("Undef:", o)
+    return res
+
+
 def start():
     # Set WM_CLASS for the window
     GLib.set_prgname("VideoDownloader")
+    res = parseOptions(sys.argv)
+    FFMPEGTools.setupRotatingLogger("YtDownloader", res["logConsole"])
+    Log.info("YtDownloader %s", VERSION)
+    Log.info("yt-dlp backend: %s", YtModel.YOUTUBE_DL)
     model = YtModel.Model()
     global TEXT_MAP
     TEXT_MAP = model.text

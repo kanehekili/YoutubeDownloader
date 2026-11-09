@@ -10,7 +10,11 @@ cp $DIR/YtGui.desktop /usr/share/applications;
 mkdir -p /opt/ytdownloader;
 cp -r $DIR/* /opt/ytdownloader;
 chmod +x /opt/ytdownloader/YtGui.py
-ln -s /opt/ytdownloader/YtGui.py /usr/bin/YtGui
+# the in-app update runs "pkexec /opt/ytdownloader/yt-dlp -U", so it needs
+# the x bit - cp keeps the mode from the tar
+chmod a+rx /opt/ytdownloader/yt-dlp
+# -f: a reinstall must not fail on an existing link
+ln -sf /opt/ytdownloader/YtGui.py /usr/bin/YtGui
 
 if test -f "/usr/bin/yt-dlp"; then
 	echo "yt-dlp installed in /usr/bin"

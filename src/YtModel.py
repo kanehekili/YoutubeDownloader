@@ -3,18 +3,17 @@ Created on Oct 25, 2019
 
 @author: matze
 '''
-from configparser import ConfigParser
 import locale
-from os.path import expanduser
 from subprocess import Popen
 import subprocess
-import os, urllib
+import urllib
 from urllib.parse import urlparse
-import json 
+import json
 import re
 import time
 from datetime import timedelta,datetime
 import sys
+from FFMPEGTools import Log, ConfigAccessor, OSTools
 
 # import threading
 MODE_VIDEO = "V";
@@ -26,14 +25,12 @@ lang = locale.getlocale()
 # If yt-dlp is present we use the distros one. Our binary will be delivered and can be activated by user 
 INTRINSIC_YT_PATH = "/opt/ytdownloader/yt-dlp"
 DISTRO_DL = "/usr/bin/yt-dlp"
-if not os.path.exists(DISTRO_DL):
-    YOUTUBE_DL = INTRINSIC_YT_PATH
-    if os.path.exists(INTRINSIC_YT_PATH):
-        YOUTUBE_DL = INTRINSIC_YT_PATH
-    else:
-        YOUTUBE_DL = None    
-else:
+if OSTools().fileExists(DISTRO_DL):
     YOUTUBE_DL = DISTRO_DL
+elif OSTools().fileExists(INTRINSIC_YT_PATH):
+    YOUTUBE_DL = INTRINSIC_YT_PATH
+else:
+    YOUTUBE_DL = None
 
 TEXT_MAP = {}
 if "en" in lang[0]:
@@ -99,6 +96,8 @@ if "en" in lang[0]:
     TEXT_MAP["DISTRO_YT"] = "Switch between the latest GIT(pressed) or distro yt-dlp"
     TEXT_MAP["DL_BROWSER_TITLE"] = "Select browser for cookies"
     TEXT_MAP["DL_BROWER_TIP"] = "You need to sign into Youtube. Select which browser has the cookie"
+    TEXT_MAP["STATUS_UPDATING"] = "Updating yt-dlp..."
+    TEXT_MAP["STATUS_BUSY_DROP"] = "Download running - no new URLs accepted"
     
 elif "de" in lang[0]:
     TEXT_MAP["TITLE"] = "Video Downloader"
@@ -163,54 +162,15 @@ elif "de" in lang[0]:
     TEXT_MAP["DISTRO_YT"] = "Yt-dlp als GIT Version(gedrückt) oder Distro Version nutzen"  
     TEXT_MAP["DL_BROWSER_TITLE"] = "Brauser Auswahl für cookies"
     TEXT_MAP["DL_BROWER_TIP"] = "Youtube erwartet, das man eingeloggt ist. Wähle Deinen Brauser aus"
+    TEXT_MAP["STATUS_UPDATING"] = "Aktualisiere yt-dlp..."
+    TEXT_MAP["STATUS_BUSY_DROP"] = "Download läuft - keine neuen URLs"
     
     
 def _t(s):
     if not s in TEXT_MAP:
-        print('TEXT_MAP["%s"]="missing"' % (s))
+        Log.warning('TEXT_MAP["%s"]="missing"', s)
         return s
     return TEXT_MAP[s]
-
-
-class ConfigAccessor():
-    __SECTION = "DATA"
-
-    def __init__(self, fileName):
-        self._findConfigPath(fileName)
-        self.parser = ConfigParser()
-        self.parser.add_section(self.__SECTION)
-
-    def _findConfigPath(self, fileName):
-        home = expanduser("~")
-        cfg = os.path.join(home, ".config")
-        if os.path.exists(cfg):
-            self._path = os.path.join(cfg, fileName)
-        else:
-            self._path = os.path.join(home, fileName)
-
-    def read(self):
-        self.parser.read(self._path)
-
-    def add(self, key, value):
-        self.parser.set(self.__SECTION, key, value)
-
-    def get(self, key):
-        if self.parser.has_option(self.__SECTION, key):
-            return self.parser.get(self.__SECTION, key)
-        return None
-
-    def getInt(self, key):
-        if self.parser.has_option(self.__SECTION, key):
-            return self.parser.getint(self.__SECTION, key)
-        return None
-
-    def store(self):
-        try:
-            with open(self._path, 'w') as aFile:
-                self.parser.write(aFile)
-        except IOError:
-            return False
-        return True
 
 
 class Model():
@@ -219,40 +179,64 @@ class Model():
     AUDIO_DEFAULT = "mp3"
     BRAUSER_DEFAULT="firefox";
 
+    CONFIG_FOLDER = "YtDownloader"
+    CONFIG_FILE = "yt.ini"
+    #up to 1.6.3 the ini was a flat file directly in ~/.config
+    LEGACY_CONFIG = "YtDownloader.ini"
+
     def __init__(self):
         self.text = TEXT_MAP
-        self.config = ConfigAccessor("YtDownloader.ini")
+        self._migrateLegacyConfig()
+        self.config = ConfigAccessor(self.CONFIG_FOLDER, self.CONFIG_FILE, "DATA")
         self._assureConfig()
         self.groupLoad = False #Yt hack of playlists
-    
-    # def isManualYT(self):
-    #    return os.path.isfile(INTRINSIC_YT_PATH)
-        
+
+    '''
+    The ini now lives beside the log in ~/.config/YtDownloader, the way
+    VideoCut and EasyPlayer keep theirs. Carry the old flat file over once,
+    otherwise the URL list and the chosen backend would be lost on upgrade.
+    '''
+
+    def _migrateLegacyConfig(self):
+        cfgDir = OSTools().joinPathes(OSTools().getHomeDirectory(), ".config")
+        legacy = OSTools().joinPathes(cfgDir, self.LEGACY_CONFIG)
+        current = OSTools().joinPathes(cfgDir, self.CONFIG_FOLDER, self.CONFIG_FILE)
+        if not OSTools().fileExists(legacy) or OSTools().fileExists(current):
+            return
+        try:
+            OSTools().ensureDirectory(OSTools().getDirectory(current))
+            OSTools().moveFile(legacy, current)
+            Log.info("Migrated config %s -> %s", legacy, current)
+        except OSError as osError:
+            #a lost ini is a nuisance, not a reason to refuse to start
+            Log.error("Could not migrate %s: %s", legacy, osError.strerror)
+
+
     def hasDistroYT(self):
-        return os.path.exists(DISTRO_DL)  # todo config setting 
+        return OSTools().fileExists(DISTRO_DL)  # todo config setting
     
     def _assureConfig(self):
 
         self.config.read()
         x = self.config.getInt("SCREENX")
         if not x:
-            home = expanduser("~")
-            self.config.add("SCREENX", "760")
-            self.config.add("SCREENY", "450")
-            pathM = os.path.join(home, _t("FOLDER_MUSIC"))
-            pathV = os.path.join(home, _t("FOLDER_VIDEO"))
-            if os.path.exists(pathM):
-                self.config.add("DEST_MUSIC", pathM)
+            home = OSTools().getHomeDirectory()
+            self.config.set("SCREENX", "760")
+            self.config.set("SCREENY", "450")
+            pathM = OSTools().joinPathes(home, _t("FOLDER_MUSIC"))
+            pathV = OSTools().joinPathes(home, _t("FOLDER_VIDEO"))
+            if OSTools().isDirectory(pathM):
+                self.config.set("DEST_MUSIC", pathM)
             else:
                 self._setEmergencyFolder(home, "DEST_MUSIC")
-            if os.path.exists(pathV):
-                self.config.add("DEST_VIDEO", pathV)
+            if OSTools().isDirectory(pathV):
+                self.config.set("DEST_VIDEO", pathV)
             else:
                 self._setEmergencyFolder(home, "DEST_VIDEO")
-            self.config.add("DOWNLOAD_TYPE", MODE_VIDEO)  # video or audio
-            self.config.add("URLList", json.dumps([]))
-            self.config.add("FORMAT", self.FORMATS[0])
-            self.config.add("AUDIO_FORMAT", self.AUDIO_DEFAULT)
+            self.config.set("DOWNLOAD_TYPE", MODE_VIDEO)  # video or audio
+            self.config.set("URLList", json.dumps([]))
+            self.config.set("FORMAT", self.FORMATS[0])
+            self.config.set("AUDIO_FORMAT", self.AUDIO_DEFAULT)
     
     def getScreenX(self):
         return self.config.getInt("SCREENX")
@@ -261,32 +245,32 @@ class Model():
         return self.config.getInt("SCREENY")
 
     def setScreenX(self, anInt):
-        self.config.add("SCREENX", str(anInt))
+        self.config.set("SCREENX", str(anInt))
         
     def setScreenY(self, anInt): 
-        self.config.add("SCREENY", str(anInt))
+        self.config.set("SCREENY", str(anInt))
 
     def getMusicPath(self):
         return self.config.get("DEST_MUSIC")
     
     def setMusicPath(self, path):
-        self.config.add("DEST_MUSIC", path)
+        self.config.set("DEST_MUSIC", path)
 
     def setBrowser(self,browserName):
-        self.config.add("BRAUSER", browserName)
+        self.config.set("BRAUSER", browserName)
         
     def getBrowser(self):
         br = self.config.get("BRAUSER")
         if br is None:
             br= self.BRAUSER_DEFAULT
-        print("Using brauser:",br)
+        Log.debug("Using browser cookies: %s", br)
         return br
 
     def getVideoPath(self):
         return self.config.get("DEST_VIDEO")
 
     def setVideoPath(self, path):
-        self.config.add("DEST_VIDEO", path)   
+        self.config.set("DEST_VIDEO", path)   
          
     def getDownloadTypeIndex(self):
         mode = self.config.get("DOWNLOAD_TYPE")
@@ -300,12 +284,12 @@ class Model():
     def setDownloadTypeIndex(self, anInt):
         # 0==Video, 1== Audio
         if anInt == 0:
-            self.config.add("DOWNLOAD_TYPE", MODE_VIDEO)
+            self.config.set("DOWNLOAD_TYPE", MODE_VIDEO)
         else:
-            self.config.add("DOWNLOAD_TYPE", MODE_AUDIO)
+            self.config.set("DOWNLOAD_TYPE", MODE_AUDIO)
 
     def setYtBackend(self, backendMode):
-        self.config.add("BACKEND", str(backendMode))
+        self.config.set("BACKEND", str(backendMode))
     
     def getYtBackend(self):
         return self.config.getInt("BACKEND")
@@ -316,17 +300,17 @@ class Model():
     
     def setURLList(self, anArray):
         txt = json.dumps(anArray)
-        self.config.add("URLList", txt)
+        self.config.set("URLList", txt)
         self.config.store()
     
     def setFormat(self, aString):
-        self.config.add("FORMAT", aString)
+        self.config.set("FORMAT", aString)
 
     def getFormat(self):
         return self.config.get("FORMAT")
 
     def setAudioFormat(self, aString):
-        self.config.add("AUDIO_FORMAT", aString)
+        self.config.set("AUDIO_FORMAT", aString)
 
     def getAudioFormat(self):
         # missing in ini files written before this setting existed -> stay on mp3
@@ -339,10 +323,9 @@ class Model():
         return YOUTUBE_DL is not None
     
     def _setEmergencyFolder(self, home, key):
-        pathD = os.path.join(home, "Downloads")
-        if not os.path.exists(pathD):
-            os.mkdir(pathD)
-        self.config.add(key, pathD)
+        pathD = OSTools().joinPathes(home, "Downloads")
+        OSTools().ensureDirectory(pathD)
+        self.config.set(key, pathD)
                         
         
 def convertURL(rawData):
@@ -377,6 +360,8 @@ def executeAsync(cmd, commander, targetDir):
     if return_code:
         if return_code == -9:
             raise StopAsyncIteration(_t("BTN_INTERRUPT"))
+        #cropError throws most of the last line away - keep it all in the log
+        Log.warning("yt-dlp exit code %d, last line: %s", return_code, (stdout_line or "").rstrip())
         form = cropError(stdout_line)
         raise Exception(form)
 
@@ -457,45 +442,52 @@ class Downloader():
         self.downloadtime = timedelta(minutes=0)
         self.downloadSize = 0.0
         self.filename = None
-        self.MP4 = ["python3", YOUTUBE_DL, "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]", "-o", '%(title)s.%(ext)s', "--merge-output-format", "mp4"]
-        self.MKV = ["python3", YOUTUBE_DL, "-f", "bestvideo+bestaudio/best", "-o", '%(title)s.%(ext)s', "--merge-output-format", "mkv"]
-        self.ANY = ["python3", YOUTUBE_DL, "-f", "bestvideo+bestaudio/best", "-o", '%(title)s.%(ext)s']
-        self.AUDIO_MP3 = ["python3", YOUTUBE_DL, "-f", "bestaudio/best", "-o", '%(title)s.%(ext)s', "--extract-audio", "--audio-quality", "0", "--audio-format", "mp3"]
-        # acodec=opus picks the native webm stream, so ffmpeg only repacks it into .opus.
-        # plain "bestaudio" would select the higher rated m4a and re-encode aac->opus
-        self.AUDIO_OPUS = ["python3", YOUTUBE_DL, "-f", "bestaudio[acodec=opus]/bestaudio/best", "-o", '%(title)s.%(ext)s', "--extract-audio", "--audio-format", "opus"]
-        self.AUDIO_ORIGINAL = ["python3", YOUTUBE_DL, "-f", "bestaudio/best", "-o", '%(title)s.%(ext)s']
 
+    '''
+    The yt-dlp arguments for the wanted target format. Built on each download,
+    not cached in __init__: the GUI flips YOUTUBE_DL between the distro and the
+    local binary at runtime, so a list built in the constructor would keep
+    whichever path it was born with.
+    '''
+
+    def _buildCommand(self, videomode, quality, audioFormat):
+        if videomode == MODE_AUDIO:
+            # audioFormat may be None when called from an older config - mp3 stays the default
+            if audioFormat == Model.AUDIO_FORMATS[1]:
+                # acodec=opus picks the native webm stream, so ffmpeg only repacks it into .opus.
+                # plain "bestaudio" would select the higher rated m4a and re-encode aac->opus
+                args = ["-f", "bestaudio[acodec=opus]/bestaudio/best", "--extract-audio", "--audio-format", "opus"]
+            elif audioFormat == Model.AUDIO_FORMATS[2]:
+                args = ["-f", "bestaudio/best"]
+            else:
+                args = ["-f", "bestaudio/best", "--extract-audio", "--audio-quality", "0", "--audio-format", "mp3"]
+        else:
+            if quality == Model.FORMATS[0]:
+                args = ["-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]", "--merge-output-format", "mp4"]
+            elif quality == Model.FORMATS[1]:
+                args = ["-f", "bestvideo+bestaudio/best", "--merge-output-format", "mkv"]
+            else:
+                args = ["-f", "bestvideo+bestaudio/best"]
+        return ["python3", YOUTUBE_DL, "-o", '%(title)s.%(ext)s'] + args
 
     def download(self, url, videomode, quality,browser,targetDir,audioFormat=None):
         # TODO --transcode-video to mp4?
         if YOUTUBE_DL is None:
             return ProcResult(None, _t("NO_DL"))
 
-        if videomode == MODE_AUDIO:
-            # audioFormat may be None when called from an older config - mp3 stays the default
-            if audioFormat == Model.AUDIO_FORMATS[1]:
-                cmd = self.AUDIO_OPUS
-            elif audioFormat == Model.AUDIO_FORMATS[2]:
-                cmd = self.AUDIO_ORIGINAL
-            else:
-                cmd = self.AUDIO_MP3
-        else:
-            if quality == Model.FORMATS[0]:
-                cmd = self.MP4
-            elif quality == Model.FORMATS[1]:
-                cmd = self.MKV
-            else:
-                cmd = self.ANY
-        if 'youtube.com' in url or 'youtu.be' in url:
-            cmd = cmd + ['--extractor-args', 'youtube:player_client=web_embedded,web,tv']
+        # No player_client pinning: yt-dlp picks its own clients depending on
+        # whether the cookies authenticate us, and keeps that list current.
+        # Forcing web_embedded first made every non embeddable video fail with
+        # "Playback on other websites has been disabled by the video owner",
+        # and masked unrelated errors with the same message.
+        cmd = self._buildCommand(videomode, quality, audioFormat)
         #cookie hack: https://www.reddit.com/r/youtubedl/comments/1kezfg1/problems_with_ytdlp_on_yt/
         if browser:
             cookie = ["--cookies-from-browser",browser,url]
         else:
             cookie = [url]
         command = cmd + cookie
-        print("CMD:",command)
+        Log.info("yt-dlp: %s", " ".join(command))
         start = time.monotonic() - 1000
         try:
             for line in executeAsync(command, self, targetDir):
@@ -508,9 +500,11 @@ class Downloader():
                 if err is not None:
                     self.res.error = err
         except StopAsyncIteration as error:
+            Log.info("Download interrupted by user")
             self.client.onProgress(None, _t("STATUS_INTERRUPT"))
-            
+
         except Exception as error:
+            Log.exception("Download failed:")
             self.res.error = errorToText(error)
         self.proc = None
         if not self.res.hasError():
@@ -569,17 +563,17 @@ class Downloader():
                             fn = self.TITLE.search(line)
                             if fn is not None:
                                 self.filename = fn.group(1)
-                print ("<" + line.rstrip())  
                 if "ERROR" in line:
-                    print("error:%s" % (line));  # TODO
+                    Log.error("ytdl| %s", line.rstrip())
                     return cropError(line)
-        return None 
+                Log.debug("ytdl| %s", line.rstrip())
+        return None
                 
     def stop(self):
         if self.proc is None:
-            print("Can't kill proc!")
+            Log.warning("Can't kill proc - no process running")
         else:
-            print("downloader - stop process")
+            Log.info("downloader - stop process")
             self.proc.kill()
 
     def setProcess(self, popen):
@@ -597,19 +591,19 @@ def getListInfo(url,loadGroup):
         cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--flat-playlist", refinedURL]
     else:
         refinedURL = url.split('&list')[0]
-        cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--no-playlist"]
-        if 'youtube.com' in refinedURL or 'youtu.be' in refinedURL:
-            cmd += ['--extractor-args', 'youtube:player_client=web_embedded,web,tv']
-        cmd.append(refinedURL)
+        #no player_client pinning here either - see Downloader.download
+        cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--no-playlist", refinedURL]
 
-    print("listcmd:",cmd)
+    Log.info("yt-dlp list: %s", " ".join(cmd))
     try:
         result = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         form = None
         resArray = None
         if len(result[1]) > 0:
             # This is mostly an api problem
-            form = cropError(result[1].decode("utf-8"))
+            stderr = result[1].decode("utf-8")
+            Log.error("ytdl stderr: %s", stderr.rstrip())
+            form = cropError(stderr)
             # return ProcResult(None,form)
         if len(result[0]) > 0:
             entries = result[0].decode("utf-8").splitlines()
@@ -618,6 +612,7 @@ def getListInfo(url,loadGroup):
                 resArray.append(json.loads(line))  # is a map
         return ProcResult(resArray, form if resArray is None else None)
     except Exception as error:
+        Log.exception("Reading the URL info failed:")
         form = errorToText(error)
         return ProcResult(None, form)
 
@@ -627,16 +622,14 @@ def openFile(path):
 # TODO make it async in thread
 
 
-def play(root, name):
-    target = os.path.join(root, name)
-    cmd = ['xdg-open', target]
+def play(path):
+    cmd = ['xdg-open', path]
     process = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # poll?
 
 
-def removeFile(root, name):
-    target = os.path.join(root, name)
-    os.remove(target)
+def removeFile(path):
+    OSTools().removeFile(path)
 
 
 def openFolder(root):
@@ -646,18 +639,22 @@ def openFolder(root):
 
 def updateYt():
     # cmd=['pkexec',YOUTUBE_DL,'--update']
-    cmd = ['pkexec', INTRINSIC_YT_PATH, "-U"] 
+    cmd = ['pkexec', INTRINSIC_YT_PATH, "-U"]
+    Log.info("yt-dlp update: %s", " ".join(cmd))
     result = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     form = None
     resArray = None
     if len(result[1]) > 0:
             # This is mostly an api problem
-            form = cropError(result[1].decode("utf-8"))
+            stderr = result[1].decode("utf-8")
+            Log.error("update stderr: %s", stderr.rstrip())
+            form = cropError(stderr)
     if len(result[0]) > 0:
         entries = result[0].decode("utf-8").splitlines()
         resArray = []
         for line in entries:
-            resArray.append(line)  # simple text 
+            Log.info("update| %s", line.rstrip())
+            resArray.append(line)  # simple text
     return ProcResult(resArray, form)
 
 

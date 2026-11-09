@@ -8,7 +8,7 @@ license=('GPL2' 'MIT')
 depends=('python' 'python-gobject' 'ffmpeg' 'yt-dlp' 'deno')
 arch=('any')
 source=(https://github.com/kanehekili/YoutubeDownloader/releases/download/@xxx@/ytdownloader@xxx@.tar)
-md5sums=(@md5sum@)
+sha256sums=(@sha256sum@)
 
 package(){	
   cd ${srcdir}
