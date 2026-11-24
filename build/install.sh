@@ -13,6 +13,7 @@ chmod +x /opt/ytdownloader/YtGui.py
 # the in-app update runs "pkexec /opt/ytdownloader/yt-dlp -U", so it needs
 # the x bit - cp keeps the mode from the tar
 chmod a+rx /opt/ytdownloader/yt-dlp
+chmod a+rx /opt/ytdownloader/qjs
 # -f: a reinstall must not fail on an existing link
 ln -sf /opt/ytdownloader/YtGui.py /usr/bin/YtGui
 
@@ -84,6 +85,8 @@ fi
 
 printf '\n'
 printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+printf '\n'
+echo "js runtime: quickjs is bundled in /opt/ytdownloader (x86_64 only)"
 printf '\n'
 
 echo "App successfully installed."

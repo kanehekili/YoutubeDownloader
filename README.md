@@ -60,7 +60,7 @@ If yt-dl is provided by your distro, you may not need to update it. However a lo
   * python3
   * python3-gi (debian) or python-gobject (Arch)
   * ffmpeg
-  * js Framework, like nodejs, deno or quickjs
+  * js runtime - Arch gets deno via yt-dlp, debian derivates ship ancient ones, so the .deb brings its own quickjs
 
 
 ### Install on Arch or Manjaro
@@ -101,6 +101,24 @@ sudo dnf install ffmpeg
 * Unpack it and run the command  **sudo ./install.sh** in the unpacked folder.
 * Install just copies a desktop file and some python scripts to /opt/ytdownloader
 * ffmpeg will be installed if the packagemanager is recognized (thanks to @fischer-felix) , the additional python lib should be already installed
+
+### Cloning this git
+`src/FFMPEGTools.py` is not part of this repository. It is shared code whose master lives in my [VideoCut](https://github.com/kanehekili/VideoCut) project - keeping a single copy there is what stops the two from drifting apart. The build copies it in, so the released packages always contain it.
+
+A fresh clone therefore has to get that file. Two ways:
+* Check out VideoCut next to this project (same parent directory) - that is what the build expects:
+```
+cd ..
+git clone https://github.com/kanehekili/VideoCut
+```
+* Or simply copy that one file into the sources:
+```
+cp ../VideoCut/src/FFMPEGTools.py src/
+```
+
+Then start the app with `python3 YtGui.py` from the `src` folder. Without that file Python stops with `ModuleNotFoundError: No module named 'FFMPEGTools'`.
+
+Building the packages with the ant build in `build/` always needs VideoCut next to this project - copying the single file is enough to run it, not to build it.
 
 ### Changes
  * 2026-11 Fix for Youtube API

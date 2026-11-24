@@ -17,6 +17,9 @@ package(){
   mkdir -p "${pkgdir}/usr/bin"
   rm $srcdir/$pkgname/install.sh
   rm $srcdir/$pkgname/uninstall.sh
+  # deno comes in anyway via yt-dlp -> yt-dlp-ejs -> deno, so the bundled
+  # x86_64 quickjs is not needed here - dropping it keeps arch=('any')
+  rm $srcdir/$pkgname/qjs
   cp $srcdir/$pkgname/YtGui.desktop $pkgdir/usr/share/applications
   cp -r $srcdir/$pkgname/* $pkgdir/opt/$pkgname
   chmod +x ${pkgdir}/opt/${pkgname}/YtGui.py

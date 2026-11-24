@@ -1,3 +1,4 @@
 opt/* opt/ytdownloader
 addons/yt-dlp /opt/ytdownloader
+addons/qjs /opt/ytdownloader
 addons/YtGui.desktop /usr/share/applications

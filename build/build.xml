@@ -44,6 +44,10 @@ project (same parent directory). Nothing can be built without it.
 		<exec dir="." executable="/bin/bash" os="Linux">
 		 <arg value="updateYtdl.sh"/>
 		</exec>
+		<!-- the JS runtime yt-dlp needs for the youtube challenge -->
+		<exec dir="." executable="/bin/bash" os="Linux">
+		 <arg value="updateQjs.sh"/>
+		</exec>
 
 
 		<copy todir="${rootDir}">
@@ -52,6 +56,8 @@ project (same parent directory). Nothing can be built without it.
 			<fileset file="*install*.sh">
 			</fileset>
 			<fileset file="yt-dlp">
+			</fileset>
+			<fileset file="qjs">
 			</fileset>
 			<fileset file="${ffmpegTools}">
 			</fileset>
@@ -169,9 +175,11 @@ project (same parent directory). Nothing can be built without it.
 		<copy todir="${ubu1Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
+			<fileset file="qjs"/>
 		</copy>
 		<chmod file="${ubu1Target}/opt/YtGui.py" perm="ug+rwx"/>
 		<chmod file="${ubu1Target}/addons/yt-dlp" perm="ug+rwx"/>
+		<chmod file="${ubu1Target}/addons/qjs" perm="ug+rwx"/>
 		<exec executable="tar" output="/dev/null" os="Linux">
 			<arg value="-cp"/>
 			<arg value="--file=${debTarget}/${ubu1Build}.tar"/>
@@ -211,9 +219,11 @@ project (same parent directory). Nothing can be built without it.
 		<copy todir="${ubu2Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
+			<fileset file="qjs"/>
 		</copy>
 		<chmod file="${ubu2Target}/opt/YtGui.py" perm="ug+rwx"/>
 		<chmod file="${ubu2Target}/addons/yt-dlp" perm="ug+rwx"/>
+		<chmod file="${ubu2Target}/addons/qjs" perm="ug+rwx"/>
 		<exec executable="tar" output="/dev/null" os="Linux">
 			<arg value="-cp"/>
 			<arg value="--file=${debTarget}/${ubu2Build}.tar"/>
@@ -254,9 +264,11 @@ project (same parent directory). Nothing can be built without it.
 		<copy todir="${ubu3Target}/addons">
 			<fileset file="*.desktop"/>
 			<fileset file="yt-dlp"/>
+			<fileset file="qjs"/>
 		</copy>
 		<chmod file="${ubu3Target}/opt/YtGui.py" perm="ug+rwx"/>
 		<chmod file="${ubu3Target}/addons/yt-dlp" perm="ug+rwx"/>
+		<chmod file="${ubu3Target}/addons/qjs" perm="ug+rwx"/>
 		<exec executable="tar" output="/dev/null" os="Linux">
 			<arg value="-cp"/>
 			<arg value="--file=${debTarget}/${ubu3Build}.tar"/>

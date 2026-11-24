@@ -1,3 +1,4 @@
 #!/bin/bash
 echo "Post installing yt-dlp"
 chmod +x /opt/ytdownloader/yt-dlp
+chmod +x /opt/ytdownloader/qjs

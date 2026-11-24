@@ -63,8 +63,15 @@ class CommandBuilderTest(unittest.TestCase):
 
     def test_mp4AsksForMp4Streams(self):
         cmd = self.video("mp4")
-        self.assertEqual(self.formatOf(cmd), "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]")
+        self.assertTrue(self.formatOf(cmd).startswith("bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"))
         self.assertEqual(cmd[cmd.index("--merge-output-format") + 1], "mp4")
+
+    def test_everyVideoFormatEndsInAFallback(self):
+        """a strict chain aborts with "requested format is not available" on
+        anything without an mp4/m4a pair - shorts, some reuploads"""
+        for quality in YtModel.Model.FORMATS:
+            with self.subTest(quality=quality):
+                self.assertTrue(self.formatOf(self.video(quality)).endswith("/best"))
 
     def test_mkvMergesIntoMkv(self):
         cmd = self.video("mkv")
@@ -162,6 +169,68 @@ class DownloadCommandTest(unittest.TestCase):
         with mock.patch.object(YtModel, 'YOUTUBE_DL', None):
             res = YtModel.Downloader(mock.Mock()).download(YOUTUBE_URL, YtModel.MODE_VIDEO, "mp4", None, "/tmp")
         self.assertTrue(res.hasError())
+
+
+class JsRuntimeTest(unittest.TestCase):
+    """yt-dlp enables only deno by default, and Ubuntu's quickjs (2021-03-27)
+    is below its 2023-12-09 floor - so the DEB ships quickjs-ng and has to
+    point yt-dlp at it. Arch has deno and gets no bundled binary, so the flag
+    must disappear there rather than naming a file that is not present."""
+
+    def argsWith(self, bundled=False, distro=False):
+        def exists(path):
+            return ((path == YtModel.INTRINSIC_QJS_PATH and bundled)
+                    or (path == YtModel.DISTRO_QJS and distro))
+        with mock.patch.object(YtModel.OSTools, 'fileExists', side_effect=exists):
+            return YtModel.jsRuntimeArgs()
+
+    def test_noFlagWithoutAnyQuickjs(self):
+        """nothing to name - yt-dlp falls back to looking for deno"""
+        self.assertEqual(self.argsWith(), [])
+
+    def test_bundledBinaryIsNamedByPath(self):
+        self.assertEqual(self.argsWith(bundled=True),
+                         ["--js-runtimes", "quickjs:" + YtModel.INTRINSIC_QJS_PATH])
+
+    def test_distroQuickjsIsNamedWithoutPath(self):
+        """arch depends on quickjs-ng, which puts qjs on the path"""
+        self.assertEqual(self.argsWith(distro=True), ["--js-runtimes", "quickjs"])
+
+    def test_bundledWinsOverDistro(self):
+        self.assertEqual(self.argsWith(bundled=True, distro=True),
+                         ["--js-runtimes", "quickjs:" + YtModel.INTRINSIC_QJS_PATH])
+
+    def test_downloadCarriesTheRuntime(self):
+        dl = YtModel.Downloader(mock.Mock())
+        with mock.patch.object(YtModel, 'jsRuntimeArgs', return_value=['--js-runtimes', 'quickjs:/q']):
+            cmd = dl._buildCommand(YtModel.MODE_VIDEO, "mp4", None)
+        self.assertEqual(cmd[cmd.index('--js-runtimes') + 1], 'quickjs:/q')
+
+    def test_bothListInfoBranchesCarryTheRuntime(self):
+        """the playlist and the single-video command are built separately"""
+        proc = mock.Mock(**{'communicate.return_value': (b'{"id":"x","title":"t"}', b'')})
+        for loadGroup, expected in ((True, '--flat-playlist'), (False, '--no-playlist')):
+            with self.subTest(loadGroup=loadGroup):
+                with mock.patch.object(YtModel, 'Popen', return_value=proc) as popen, \
+                     mock.patch.object(YtModel, 'jsRuntimeArgs', return_value=['--js-runtimes', 'quickjs:/q']):
+                    YtModel.getListInfo(YOUTUBE_URL, loadGroup)
+                cmd = popen.call_args[0][0]
+                self.assertEqual(cmd[cmd.index('--js-runtimes') + 1], 'quickjs:/q')
+                self.assertIn(expected, cmd, 'playlist handling must survive')
+
+
+class BackendDefaultTest(unittest.TestCase):
+    """distros lag behind on yt-dlp, so the bundled build is the default"""
+
+    def test_unsetBackendMeansLocal(self):
+        model = mock.Mock()
+        model.config.getInt.side_effect = lambda key, default=None: default
+        self.assertEqual(YtModel.Model.getYtBackend(model), YtModel.BACKEND_LOCAL)
+
+    def test_storedBackendWins(self):
+        model = mock.Mock()
+        model.config.getInt.return_value = YtModel.BACKEND_DISTRO
+        self.assertEqual(YtModel.Model.getYtBackend(model), YtModel.BACKEND_DISTRO)
 
 
 class ListInfoCommandTest(unittest.TestCase):

@@ -22,9 +22,15 @@ BACKEND_LOCAL = 1
 BACKEND_DISTRO = 0
 lang = locale.getlocale()
 
-# If yt-dlp is present we use the distros one. Our binary will be delivered and can be activated by user 
+# If yt-dlp is present we use the distros one. Our binary will be delivered and can be activated by user
 INTRINSIC_YT_PATH = "/opt/ytdownloader/yt-dlp"
 DISTRO_DL = "/usr/bin/yt-dlp"
+# The JS runtime yt-dlp needs to solve youtubes challenge. Only deno is
+# enabled by default and the distros are slow: Ubuntu still has quickjs
+# 2021-03-27, below yt-dlp's 2023-12-09 floor. So we ship quickjs-ng, which
+# yt-dlp accepts at any version. Not present on Arch - deno is a dependency.
+INTRINSIC_QJS_PATH = "/opt/ytdownloader/qjs"
+DISTRO_QJS = "/usr/bin/qjs"
 if OSTools().fileExists(DISTRO_DL):
     YOUTUBE_DL = DISTRO_DL
 elif OSTools().fileExists(INTRINSIC_YT_PATH):
@@ -237,6 +243,7 @@ class Model():
             self.config.set("URLList", json.dumps([]))
             self.config.set("FORMAT", self.FORMATS[0])
             self.config.set("AUDIO_FORMAT", self.AUDIO_DEFAULT)
+            self.config.set("BACKEND", str(BACKEND_LOCAL))
     
     def getScreenX(self):
         return self.config.getInt("SCREENX")
@@ -291,8 +298,10 @@ class Model():
     def setYtBackend(self, backendMode):
         self.config.set("BACKEND", str(backendMode))
     
+    #the bundled GIT build is the default: the distros lag behind on yt-dlp,
+    #and only our own copy is guaranteed to carry the challenge solver
     def getYtBackend(self):
-        return self.config.getInt("BACKEND")
+        return self.config.getInt("BACKEND", BACKEND_LOCAL)
     
     def getURLList(self):
         txt = self.config.get("URLList")
@@ -328,6 +337,17 @@ class Model():
         self.config.set(key, pathD)
                         
         
+#yt-dlp enables deno and nothing else unless told otherwise, so quickjs has
+#to be named explicitly: our bundled one if we shipped it (deb), else the
+#distros qjs on the path (arch). Empty if neither - yt-dlp then looks for deno.
+def jsRuntimeArgs():
+    if OSTools().fileExists(INTRINSIC_QJS_PATH):
+        return ["--js-runtimes", "quickjs:" + INTRINSIC_QJS_PATH]
+    if OSTools().fileExists(DISTRO_QJS):
+        return ["--js-runtimes", "quickjs"]
+    return []
+
+
 def convertURL(rawData):
     if len(rawData) < 1:
         return None
@@ -463,12 +483,16 @@ class Downloader():
                 args = ["-f", "bestaudio/best", "--extract-audio", "--audio-quality", "0", "--audio-format", "mp3"]
         else:
             if quality == Model.FORMATS[0]:
-                args = ["-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]", "--merge-output-format", "mp4"]
+                #last fallback: shorts and some reuploads have no mp4/m4a pair
+                #at all, and without it yt-dlp aborts with "requested format
+                #is not available". The merge still produces an mp4.
+                args = ["-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio/best",
+                        "--merge-output-format", "mp4"]
             elif quality == Model.FORMATS[1]:
                 args = ["-f", "bestvideo+bestaudio/best", "--merge-output-format", "mkv"]
             else:
                 args = ["-f", "bestvideo+bestaudio/best"]
-        return ["python3", YOUTUBE_DL, "-o", '%(title)s.%(ext)s'] + args
+        return ["python3", YOUTUBE_DL, "-o", '%(title)s.%(ext)s'] + jsRuntimeArgs() + args
 
     def download(self, url, videomode, quality,browser,targetDir,audioFormat=None):
         # TODO --transcode-video to mp4?
@@ -588,11 +612,11 @@ def getListInfo(url,loadGroup):
     #we have that startRadio syndrome:
     refinedURL = url.split('&start_radio')[0]
     if loadGroup:
-        cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--flat-playlist", refinedURL]
+        cmd = ["python3", YOUTUBE_DL, "-i", "-j"] + jsRuntimeArgs() + ["--flat-playlist", refinedURL]
     else:
         refinedURL = url.split('&list')[0]
         #no player_client pinning here either - see Downloader.download
-        cmd = ["python3", YOUTUBE_DL, "-i", "-j", "--no-playlist", refinedURL]
+        cmd = ["python3", YOUTUBE_DL, "-i", "-j"] + jsRuntimeArgs() + ["--no-playlist", refinedURL]
 
     Log.info("yt-dlp list: %s", " ".join(cmd))
     try:
